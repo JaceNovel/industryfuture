@@ -28,6 +28,65 @@ const samplePopular: Array<Pick<Product, "name" | "price">> = [
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
 
+type PopularItem = Pick<Product, "name" | "price"> | Product;
+
+function ProductTile({ item, idx }: { item: PopularItem; idx: number }) {
+  const isReal = "slug" in item;
+  const href = isReal ? `/product/${item.slug}` : "/shop";
+  const img = isReal ? (item.images?.[0]?.url ?? PLACEHOLDER_IMG) : PLACEHOLDER_IMG;
+
+  return (
+    <Link
+      key={isReal ? (item.id ?? item.slug) : `sample-${idx}`}
+      href={href}
+      className="group w-[76vw] max-w-[260px] shrink-0 rounded-xl border bg-card/40 backdrop-blur hover:bg-muted/20 sm:w-[250px]"
+    >
+      <div className="aspect-[4/3] overflow-hidden rounded-t-xl bg-muted/20">
+        {img.startsWith("/") ? (
+          <div className="relative h-full w-full p-3 sm:p-6">
+            <Image
+              src={img}
+              alt={item.name}
+              fill
+              sizes="(min-width: 1024px) 250px, (min-width: 640px) 250px, 76vw"
+              className="object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+            />
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={img}
+            alt={isReal ? (item.images?.[0]?.alt ?? item.name) : item.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        )}
+      </div>
+      <div className="space-y-1 p-3 sm:space-y-2 sm:p-4">
+        <div className="truncate font-medium">{item.name}</div>
+        <div className="text-sm text-muted-foreground">{formatPrice(item.price)}</div>
+      </div>
+    </Link>
+  );
+}
+
+function ProductMarqueeRow({ items, direction }: { items: PopularItem[]; direction: "left" | "right" }) {
+  const loopItems = [...items, ...items];
+
+  return (
+    <div className="overflow-hidden">
+      <div className={`home-marquee-track ${direction === "left" ? "home-marquee-left" : "home-marquee-right"}`}>
+        {loopItems.map((item, idx) => (
+          <ProductTile
+            key={`${"slug" in item ? item.id ?? item.slug : `sample-${idx % items.length}`}-${idx}`}
+            item={item}
+            idx={idx}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
 
@@ -40,7 +99,10 @@ export default function Home() {
     queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=featured"),
   });
   const featured = featuredQuery.data?.data ?? [];
-  const popularItems = featured.length ? featured.slice(0, 5) : samplePopular;
+  const popularItems: PopularItem[] = (featured.length ? featured : samplePopular).slice(0, 5);
+  const secondaryItems: PopularItem[] = (featured.length > 5 ? featured.slice(5, 10) : featured).length
+    ? (featured.length > 5 ? featured.slice(5, 10) : featured).slice(0, 5)
+    : samplePopular.slice(0, 5);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-10">
@@ -150,45 +212,9 @@ export default function Home() {
             <div className="text-sm text-muted-foreground">API indisponible, produits d’exemple affichés.</div>
           ) : null}
 
-          <div className="mt-4 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0 sm:[scrollbar-width:auto] sm:snap-none sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {popularItems.map((p, idx) => {
-              const isReal = "slug" in p;
-              const href = isReal ? `/product/${(p as Product).slug}` : "/shop";
-              const img = isReal ? ((p as Product).images?.[0]?.url ?? PLACEHOLDER_IMG) : PLACEHOLDER_IMG;
-
-              return (
-                <Link
-                  key={isReal ? ((p as Product).id ?? (p as Product).slug) : `sample-${idx}`}
-                  href={href}
-                  className="group min-w-[260px] snap-start rounded-xl border bg-card/40 backdrop-blur hover:bg-muted/20 sm:min-w-0"
-                >
-                  <div className="aspect-[4/3] overflow-hidden rounded-t-xl bg-muted/20">
-                    {img.startsWith("/") ? (
-                      <div className="relative h-full w-full p-3 sm:p-6">
-                        <Image
-                          src={img}
-                          alt={p.name}
-                          fill
-                          sizes="(min-width: 1024px) 20vw, 50vw"
-                          className="object-contain transition-transform duration-300 group-hover:scale-[1.02]"
-                        />
-                      </div>
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={img}
-                        alt={(p as Product).images?.[0]?.alt ?? p.name}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-1 p-3 sm:space-y-2 sm:p-4">
-                    <div className="truncate font-medium">{p.name}</div>
-                    <div className="text-sm text-muted-foreground">{formatPrice(p.price)}</div>
-                  </div>
-                </Link>
-              );
-            })}
+          <div className="mt-4 space-y-4">
+            <ProductMarqueeRow items={popularItems} direction="right" />
+            <ProductMarqueeRow items={secondaryItems} direction="left" />
           </div>
         </div>
       </section>

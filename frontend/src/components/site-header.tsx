@@ -11,6 +11,7 @@ import { clearAuthCookies, getEmail, getName, getRole, getToken } from "@/lib/au
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   BookOpen,
   BaggageClaim,
@@ -33,7 +34,9 @@ import {
   Tag,
   Truck,
   Package,
+  LogIn,
   User,
+  UserPlus,
   WashingMachine,
   Watch,
 } from "lucide-react";
@@ -51,6 +54,7 @@ export function SiteHeader() {
   const accountRef = useRef<HTMLDivElement | null>(null);
   const [accountOpenMobile, setAccountOpenMobile] = useState(false);
   const accountMobileRef = useRef<HTMLDivElement | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setToken(getToken());
@@ -81,6 +85,7 @@ export function SiteHeader() {
     setCategoriesOpen(false);
     setAccountOpen(false);
     setAccountOpenMobile(false);
+    setMobileMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -198,20 +203,149 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 md:px-6">
         {/* Left: brand + burger + primary links */}
         <div className="flex items-center gap-2">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md p-2 hover:bg-muted/30 md:hidden"
+                aria-label="Menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[86vw] p-0" showCloseButton={false}>
+              <div className="flex h-full flex-col">
+                <div className="flex items-center gap-3 border-b px-4 py-4">
+                  <div className="relative h-7 w-7 shrink-0">
+                    <Image
+                      src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
+                      alt="IndustryFuture"
+                      fill
+                      sizes="28px"
+                      className="object-contain"
+                    />
+                  </div>
+                  <SheetTitle className="text-3xl font-semibold tracking-tight">Jacenshop</SheetTitle>
+                </div>
+
+                <div className="flex flex-1 flex-col overflow-hidden px-4 py-4">
+                  <div>
+                    <div className="text-3xl font-medium">Navigation</div>
+                    <div className="mt-3 space-y-1">
+                      <SheetClose asChild>
+                        <Link href="/shop" className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30">
+                          <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-2xl">Tous les produits</span>
+                        </Link>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Link
+                          href="/shop?offers=grouped"
+                          className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                        >
+                          <Tag className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-2xl">Offres groupées</span>
+                        </Link>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Link
+                          href="/promotions"
+                          className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                        >
+                          <Megaphone className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-2xl">Promotions</span>
+                        </Link>
+                      </SheetClose>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 min-h-0 flex-1">
+                    <div className="text-3xl font-medium">Catégories</div>
+                    <div className="mt-3 max-h-[44vh] overflow-y-auto pr-1">
+                      <div className="space-y-1">
+                        {(categoriesQuery.data ?? []).map((c) => {
+                          const Icon = categoryIcon(c);
+                          return (
+                            <SheetClose key={c.slug} asChild>
+                              <Link
+                                href={`/shop?category=${encodeURIComponent(c.slug)}`}
+                                className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                              >
+                                <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                                <span className="truncate text-2xl text-foreground/90">{c.name}</span>
+                              </Link>
+                            </SheetClose>
+                          );
+                        })}
+                        {!categoriesQuery.data?.length ? (
+                          <div className="px-2 py-2 text-sm text-muted-foreground">Aucune catégorie.</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 border-t pt-4">
+                    <div className="text-3xl font-medium">Compte</div>
+                    {!token ? (
+                      <div className="mt-3 space-y-1">
+                        <SheetClose asChild>
+                          <Link
+                            href="/auth/login"
+                            className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                          >
+                            <LogIn className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-2xl">Connexion</span>
+                          </Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link
+                            href="/auth/register"
+                            className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                          >
+                            <UserPlus className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-2xl">Inscription</span>
+                          </Link>
+                        </SheetClose>
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-1">
+                        <SheetClose asChild>
+                          <Link href="/account" className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30">
+                            <User className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-2xl">Mon profil</span>
+                          </Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link
+                            href="/account/orders"
+                            className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                          >
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-2xl">Mes commandes</span>
+                          </Link>
+                        </SheetClose>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="relative -my-1 h-14 w-14 sm:h-16 sm:w-16 md:-my-2 md:h-20 md:w-20">
+            <span className="relative -my-2 h-16 w-16 sm:h-20 sm:w-20 md:-my-3 md:h-24 md:w-24">
               <Image
                 src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
                 alt="IndustryFuture"
                 fill
-                sizes="80px"
+                sizes="(min-width: 768px) 96px, (min-width: 640px) 80px, 64px"
                 className="object-contain"
                 priority
               />
             </span>
           </Link>
 
-          <div className="relative" ref={categoriesRef}>
+          <div className="relative hidden md:block" ref={categoriesRef}>
             <button
               type="button"
               onClick={() => setCategoriesOpen((v) => !v)}
