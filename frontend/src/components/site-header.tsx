@@ -39,6 +39,7 @@ import {
   UserPlus,
   WashingMachine,
   Watch,
+  X,
 } from "lucide-react";
 
 export function SiteHeader() {
@@ -52,8 +53,6 @@ export function SiteHeader() {
   const categoriesRef = useRef<HTMLDivElement | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
-  const [accountOpenMobile, setAccountOpenMobile] = useState(false);
-  const accountMobileRef = useRef<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -84,7 +83,6 @@ export function SiteHeader() {
   useEffect(() => {
     setCategoriesOpen(false);
     setAccountOpen(false);
-    setAccountOpenMobile(false);
     setMobileMenuOpen(false);
   }, [pathname]);
 
@@ -133,29 +131,6 @@ export function SiteHeader() {
       document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [accountOpen]);
-
-  useEffect(() => {
-    if (!accountOpenMobile) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAccountOpenMobile(false);
-    };
-
-    const onPointerDown = (e: MouseEvent | PointerEvent) => {
-      const root = accountMobileRef.current;
-      if (!root) return;
-      const target = e.target as Node | null;
-      if (target && root.contains(target)) return;
-      setAccountOpenMobile(false);
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [accountOpenMobile]);
 
   const categoryIcon = useMemo(() => {
     const byKey: Record<string, typeof Tag> = {
@@ -213,29 +188,41 @@ export function SiteHeader() {
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[86vw] p-0" showCloseButton={false}>
+            <SheetContent side="left" className="w-[82vw] max-w-[380px] p-0" showCloseButton={false}>
               <div className="flex h-full flex-col">
-                <div className="flex items-center gap-3 border-b px-4 py-4">
-                  <div className="relative h-7 w-7 shrink-0">
-                    <Image
-                      src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
-                      alt="IndustryFuture"
-                      fill
-                      sizes="28px"
-                      className="object-contain"
-                    />
+                <div className="flex items-center justify-between gap-3 border-b px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-7 w-7 shrink-0">
+                      <Image
+                        src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
+                        alt="IndustryFuture"
+                        fill
+                        sizes="28px"
+                        className="object-contain"
+                      />
+                    </div>
+                    <SheetTitle className="text-[2.8rem] font-semibold tracking-tight">Jacenshop</SheetTitle>
                   </div>
-                  <SheetTitle className="text-3xl font-semibold tracking-tight">Jacenshop</SheetTitle>
+
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-destructive/40 text-foreground hover:bg-muted/30"
+                      aria-label="Fermer"
+                    >
+                      <X className="h-7 w-7" />
+                    </button>
+                  </SheetClose>
                 </div>
 
                 <div className="flex flex-1 flex-col overflow-hidden px-4 py-4">
                   <div>
-                    <div className="text-3xl font-medium">Navigation</div>
+                    <div className="text-[2.3rem] font-medium">Navigation</div>
                     <div className="mt-3 space-y-1">
                       <SheetClose asChild>
                         <Link href="/shop" className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30">
                           <ShoppingBag className="h-5 w-5 text-muted-foreground" />
-                          <span className="text-2xl">Tous les produits</span>
+                          <span className="text-[2.1rem]">Tous les produits</span>
                         </Link>
                       </SheetClose>
                       <SheetClose asChild>
@@ -244,7 +231,7 @@ export function SiteHeader() {
                           className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                         >
                           <Tag className="h-5 w-5 text-muted-foreground" />
-                          <span className="text-2xl">Offres groupées</span>
+                          <span className="text-[2.1rem]">Offres groupées</span>
                         </Link>
                       </SheetClose>
                       <SheetClose asChild>
@@ -253,15 +240,15 @@ export function SiteHeader() {
                           className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                         >
                           <Megaphone className="h-5 w-5 text-muted-foreground" />
-                          <span className="text-2xl">Promotions</span>
+                          <span className="text-[2.1rem]">Promotions</span>
                         </Link>
                       </SheetClose>
                     </div>
                   </div>
 
                   <div className="mt-5 min-h-0 flex-1">
-                    <div className="text-3xl font-medium">Catégories</div>
-                    <div className="mt-3 max-h-[44vh] overflow-y-auto pr-1">
+                    <div className="text-[2.3rem] font-medium">Catégories</div>
+                    <div className="mt-3 max-h-[46vh] overflow-y-auto pr-1">
                       <div className="space-y-1">
                         {(categoriesQuery.data ?? []).map((c) => {
                           const Icon = categoryIcon(c);
@@ -271,8 +258,8 @@ export function SiteHeader() {
                                 href={`/shop?category=${encodeURIComponent(c.slug)}`}
                                 className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                               >
-                                <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                                <span className="truncate text-2xl text-foreground/90">{c.name}</span>
+                                <Icon className="h-6 w-6 shrink-0 text-muted-foreground" />
+                                <span className="truncate text-[2rem] text-foreground/90">{c.name}</span>
                               </Link>
                             </SheetClose>
                           );
@@ -284,8 +271,8 @@ export function SiteHeader() {
                     </div>
                   </div>
 
-                  <div className="mt-5 border-t pt-4">
-                    <div className="text-3xl font-medium">Compte</div>
+                  <div className="mt-5 pt-2">
+                    <div className="text-[2.3rem] font-medium">Compte</div>
                     {!token ? (
                       <div className="mt-3 space-y-1">
                         <SheetClose asChild>
@@ -294,7 +281,7 @@ export function SiteHeader() {
                             className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                           >
                             <LogIn className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-2xl">Connexion</span>
+                            <span className="text-[2.1rem]">Connexion</span>
                           </Link>
                         </SheetClose>
                         <SheetClose asChild>
@@ -303,7 +290,7 @@ export function SiteHeader() {
                             className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                           >
                             <UserPlus className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-2xl">Inscription</span>
+                            <span className="text-[2.1rem]">Inscription</span>
                           </Link>
                         </SheetClose>
                       </div>
@@ -312,7 +299,7 @@ export function SiteHeader() {
                         <SheetClose asChild>
                           <Link href="/account" className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30">
                             <User className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-2xl">Mon profil</span>
+                            <span className="text-[2.1rem]">Mon profil</span>
                           </Link>
                         </SheetClose>
                         <SheetClose asChild>
@@ -321,7 +308,7 @@ export function SiteHeader() {
                             className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                           >
                             <Package className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-2xl">Mes commandes</span>
+                            <span className="text-[2.1rem]">Mes commandes</span>
                           </Link>
                         </SheetClose>
                       </div>
@@ -421,6 +408,13 @@ export function SiteHeader() {
 
         {/* Right: quick actions */}
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <Link
+            href="/shop"
+            className="inline-flex items-center rounded-md p-2 hover:bg-muted/30 md:hidden"
+            aria-label="Recherche"
+          >
+            <Search className="h-5 w-5" />
+          </Link>
           <Link
             href="/tracking"
             className="hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-muted/30 md:inline-flex"
@@ -526,89 +520,6 @@ export function SiteHeader() {
             ) : null}
           </Link>
 
-          {/* Mobile icons */}
-          <div className="relative md:hidden" ref={accountMobileRef}>
-            {token ? (
-              <button
-                type="button"
-                onClick={() => setAccountOpenMobile((v) => !v)}
-                className="inline-flex items-center rounded-md p-2 hover:bg-muted/30"
-                aria-label="Compte"
-                aria-haspopup="menu"
-                aria-expanded={accountOpenMobile}
-              >
-                <User className="h-5 w-5" />
-              </button>
-            ) : (
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center rounded-md p-2 hover:bg-muted/30"
-                aria-label="Compte"
-              >
-                <User className="h-5 w-5" />
-              </Link>
-            )}
-
-            {token && accountOpenMobile ? (
-              <div role="menu" className="absolute right-0 top-full z-30 mt-2 w-72 overflow-hidden rounded-xl border bg-background">
-                <div className="px-4 py-3">
-                  <div className="text-sm font-semibold leading-tight">{name ?? "Mon compte"}</div>
-                  <div className="text-sm text-muted-foreground leading-tight">{email ?? ""}</div>
-                </div>
-                <div className="h-px bg-border" />
-                <div className="py-1">
-                  <Link
-                    href="/account"
-                    role="menuitem"
-                    className="block px-4 py-2 text-sm hover:bg-muted/30"
-                    onClick={() => setAccountOpenMobile(false)}
-                  >
-                    Mon Profil
-                  </Link>
-                  <Link
-                    href="/account/orders"
-                    role="menuitem"
-                    className="block px-4 py-2 text-sm hover:bg-muted/30"
-                    onClick={() => setAccountOpenMobile(false)}
-                  >
-                    Mes Commandes
-                  </Link>
-                  <Link
-                    href="/account/addresses"
-                    role="menuitem"
-                    className="block px-4 py-2 text-sm hover:bg-muted/30"
-                    onClick={() => setAccountOpenMobile(false)}
-                  >
-                    Mes Adresses
-                  </Link>
-                </div>
-                <div className="h-px bg-border" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted/30"
-                  onClick={() => {
-                    clearAuthCookies();
-                    setToken(null);
-                    setRole(null);
-                    setName(null);
-                    setEmail(null);
-                    setAccountOpenMobile(false);
-                    router.push("/");
-                  }}
-                >
-                  Se déconnecter
-                </button>
-              </div>
-            ) : null}
-          </div>
-          <Link
-            href="/promotions"
-            className="inline-flex items-center rounded-md p-2 hover:bg-muted/30 md:hidden"
-            aria-label="Promotions"
-          >
-            <Megaphone className="h-5 w-5" />
-          </Link>
         </div>
       </div>
     </header>
