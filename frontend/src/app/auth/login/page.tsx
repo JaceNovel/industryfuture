@@ -7,7 +7,6 @@ import { useMutation } from "@tanstack/react-query";
 import { apiPost } from "@/lib/api";
 import { setAuthCookies } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -51,31 +50,61 @@ export default function LoginPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-10">
-      <Card className="bg-card/40 backdrop-blur">
-        <CardHeader>
-          <CardTitle>Connexion</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-          </div>
-          <div className="space-y-2">
-            <Label>Mot de passe</Label>
-            <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
-          </div>
+    <main className="mx-auto w-full max-w-md px-4 py-12">
+      <h1 className="text-4xl font-bold tracking-tight">Connexion</h1>
 
-          {login.isError ? <div className="text-sm text-destructive">{(login.error as Error).message}</div> : null}
+      <form
+        className="mt-8 space-y-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          login.mutate();
+        }}
+      >
+        <div className="space-y-2">
+          <Label>Email</Label>
+          <Input
+            className="h-12"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="email@example.com"
+            autoComplete="email"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Mot de passe</Label>
+          <Input
+            className="h-12"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            autoComplete="current-password"
+          />
+        </div>
 
-          <Button className="w-full" onClick={() => login.mutate()} disabled={login.isPending || !email || !password}>
-            Se connecter
-          </Button>
-          <div className="text-center text-sm text-muted-foreground">
-            Pas de compte ? <Link className="text-foreground hover:underline" href="/auth/register">Créer un compte</Link>
+        {login.isError ? <div className="text-sm text-destructive">{(login.error as Error).message}</div> : null}
+
+        <Button
+          type="submit"
+          variant="destructive"
+          className="h-12 w-full text-base font-semibold"
+          disabled={login.isPending || !email || !password}
+        >
+          Se connecter
+        </Button>
+
+        <div className="space-y-3 text-center text-sm">
+          <div className="text-muted-foreground">
+            Pas encore de compte ?{" "}
+            <Link className="text-primary hover:underline" href="/auth/register">
+              S'inscrire
+            </Link>
           </div>
-        </CardContent>
-      </Card>
+          <a className="text-primary hover:underline" href="#">
+            Mot de passe oublié ?
+          </a>
+        </div>
+      </form>
     </main>
   );
 }

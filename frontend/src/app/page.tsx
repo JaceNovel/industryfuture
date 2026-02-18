@@ -78,7 +78,7 @@ export default function Home() {
                   <span className="font-medium text-foreground">Catalogue clair</span>
                   <div>Recherche + catégories + filtres.</div>
                 </div>
-                <div className="rounded-lg border bg-background/60 px-3 py-2">
+                <div className="hidden rounded-lg border bg-background/60 px-3 py-2 sm:block">
                   <span className="font-medium text-foreground">Livraison</span>
                   <div>Badges prêt / sur commande.</div>
                 </div>
@@ -98,7 +98,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div className="hidden gap-4 sm:grid">
             <div className="grid gap-4 sm:grid-cols-2">
               <Card className="bg-card/40 backdrop-blur">
                 <CardHeader className="space-y-0">
@@ -204,7 +204,67 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Mobile: compact zig-zag rows */}
+          <div className="mt-8 space-y-3 sm:hidden">
+            <div className="flex">
+              <div className="flex w-[92%] items-center gap-3 rounded-2xl border bg-background px-4 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <Globe className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <div className="font-medium text-destructive">Importation</div>
+                    <div className="truncate text-sm text-muted-foreground">Sélection produits</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <div className="flex w-[92%] items-center gap-3 rounded-2xl border bg-background px-4 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <ClipboardList className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <div className="font-medium text-destructive">Commande</div>
+                    <div className="truncate text-sm text-muted-foreground">Commande rapide</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex">
+              <div className="flex w-[92%] items-center gap-3 rounded-2xl border bg-background px-4 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <Clock className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <div className="font-medium text-destructive">Expédition</div>
+                    <div className="truncate text-sm text-muted-foreground">Envoi groupé</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <div className="flex w-[92%] items-center gap-3 rounded-2xl border bg-background px-4 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                  <Truck className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <div className="font-medium text-destructive">Livraison</div>
+                    <div className="truncate text-sm text-muted-foreground">Chez vous</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop/tablet: cards */}
+          <div className="mt-8 hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
             <Card className="bg-background transition-transform duration-200 will-change-transform hover:-translate-y-1">
               <CardHeader className="items-center gap-3 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
@@ -272,7 +332,47 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            {/* Mobile: compact zig-zag rows */}
+            <div className="space-y-3 sm:hidden">
+              <div className="flex">
+                <div className="flex w-[92%] items-center justify-between gap-3 rounded-2xl border border-primary-foreground/15 bg-primary-foreground/15 px-4 py-3 text-primary-foreground">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
+                      <Percent className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 truncate font-semibold">Jusqu'à -50%</div>
+                  </div>
+                  <div className="truncate text-sm text-primary-foreground/85">Sélection</div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <div className="flex w-[92%] items-center justify-between gap-3 rounded-2xl border border-primary-foreground/15 bg-primary-foreground/15 px-4 py-3 text-primary-foreground">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
+                      <Tag className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 truncate font-semibold">2 pour 1</div>
+                  </div>
+                  <div className="truncate text-sm text-primary-foreground/85">Accessoires</div>
+                </div>
+              </div>
+
+              <div className="flex">
+                <div className="flex w-[92%] items-center justify-between gap-3 rounded-2xl border border-primary-foreground/15 bg-primary-foreground/15 px-4 py-3 text-primary-foreground">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
+                      <Gift className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 truncate font-semibold">Cadeau offert</div>
+                  </div>
+                  <div className="truncate text-sm text-primary-foreground/85">Dès 10k</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop/tablet: cards */}
+            <div className="hidden gap-4 sm:grid sm:grid-cols-3">
               <div className="rounded-2xl border border-primary-foreground/15 bg-primary-foreground/15 p-6 text-center text-primary-foreground">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-foreground/20">
                   <Percent className="h-6 w-6" />
