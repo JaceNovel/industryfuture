@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20" viewBox="0 0 88 20" fill="none">
+  <circle cx="18" cy="10" r="7" fill="currentColor" opacity="0.55" />
+  <circle cx="26" cy="10" r="7" fill="currentColor" opacity="0.85" />
+  <text x="38" y="13.5" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="10.5" font-weight="800" fill="currentColor">Mastercard</text>
+</svg>

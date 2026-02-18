@@ -1,0 +1,16 @@
+{
+  "name": "industryfuture-scraper",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "scrape": "node src/scrape.mjs",
+    "scrape:dry": "node src/scrape.mjs --dry-run",
+    "playwright:install": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "csv-stringify": "^6.6.0",
+    "playwright": "^1.52.0",
+    "slugify": "^1.6.6"
+  }
+}

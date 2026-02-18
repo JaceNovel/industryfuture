@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="20" viewBox="0 0 72 20" fill="none">
+  <circle cx="11" cy="10" r="7.25" stroke="currentColor" stroke-width="1.5" />
+  <path
+    d="M9 14V6.8c0-.44.36-.8.8-.8h2.4c1.82 0 3.2.94 3.2 2.7 0 1.82-1.38 2.8-3.2 2.8H10.6"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <text x="22" y="13.5" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" font-size="11" font-weight="800" fill="currentColor">PayPal</text>
+</svg>
