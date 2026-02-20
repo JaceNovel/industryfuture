@@ -10,6 +10,7 @@ RUN apk add --no-cache \
     icu-dev \
     oniguruma-dev \
     libzip-dev \
+    postgresql-dev \
     unzip \
     git \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring bcmath intl
