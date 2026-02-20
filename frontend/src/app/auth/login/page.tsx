@@ -15,34 +15,13 @@ type LoginResponse = {
   user: { id: number; name: string; email: string; role: string };
 };
 
-function isNetworkError(err: unknown) {
-  const msg = err instanceof Error ? err.message : String(err);
-  return /failed to fetch|networkerror|load failed/i.test(msg);
-}
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const login = useMutation({
-    mutationFn: async () => {
-      try {
-        return await apiPost<LoginResponse>("/api/auth/login", { email, password });
-      } catch (e) {
-        if (!isNetworkError(e)) throw e;
-
-        return {
-          token: "demo-token",
-          user: {
-            id: 0,
-            name: "Compte démo",
-            email,
-            role: "customer",
-          },
-        } satisfies LoginResponse;
-      }
-    },
+    mutationFn: async () => apiPost<LoginResponse>("/api/auth/login", { email, password }),
     onSuccess: (data) => {
       setAuthCookies(data.token, data.user.role, data.user.name, data.user.email);
       router.push(data.user.role === "admin" ? "/admin" : "/account");

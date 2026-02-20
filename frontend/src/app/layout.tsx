@@ -17,15 +17,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: "IndustryFuture",
+  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL ?? "https://futurind.space"),
+  title: "Industrie de l'avenir",
   description: "E-commerce industriel (Next.js + Laravel)",
   icons: {
     icon: "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png",
     apple: "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png",
   },
   openGraph: {
-    title: "IndustryFuture",
+    title: "Industrie de l'avenir",
     description: "E-commerce industriel (Next.js + Laravel)",
     images: ["/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"],
   },

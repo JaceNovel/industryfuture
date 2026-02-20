@@ -19,12 +19,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61578635757172";
+const TIKTOK_URL = "https://www.tiktok.com/@a_d_a_n.gladiator?_r=1&_t=ZS-941CIvuHTwv";
+const INSTAGRAM_URL = "https://www.instagram.com/meslmenehasn?utm_source=qr&igsh=YjJ5aTRid3Zkangy";
 
 type ProductsResponse = {
   data: Product[];
   current_page: number;
   last_page: number;
 };
+
+function FacebookLogo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M22 12.06C22 6.505 17.523 2 12 2S2 6.505 2 12.06C2 17.08 5.657 21.24 10.438 22v-7.03H7.898v-2.91h2.54V9.845c0-2.522 1.492-3.915 3.777-3.915 1.094 0 2.238.196 2.238.196v2.475h-1.261c-1.243 0-1.631.78-1.631 1.58v1.88h2.773l-.443 2.91h-2.33V22C18.343 21.24 22 17.08 22 12.06z" />
+    </svg>
+  );
+}
+
+function InstagramLogo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9A5.5 5.5 0 0 1 16.5 22h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm9 2h-9A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4z" />
+      <path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+      <path d="M17.25 6.75a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+    </svg>
+  );
+}
+
+function TikTokLogo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M14 3v10.06a3.94 3.94 0 1 1-3-3.82V7.06A6 6 0 1 0 16 12V7.2c1.08 1.02 2.52 1.65 4 1.72V6.5c-2.21-.19-3.78-1.43-4.62-3.5H14z" />
+    </svg>
+  );
+}
 
 function formatPriceCFA(v: unknown) {
   const n = Number(v ?? 0);
@@ -49,6 +78,22 @@ function getTags(product: Product) {
   return "";
 }
 
+function getTransportPrices(product: Product): { air: number | null; sea: number | null } {
+  const m = (product.metadata ?? {}) as Record<string, unknown>;
+  const t = (m.transport_prices ?? {}) as Record<string, unknown>;
+
+  const airRaw = t.air ?? t.avion;
+  const seaRaw = t.sea ?? t.bateau;
+
+  const air = airRaw == null ? null : Number(airRaw);
+  const sea = seaRaw == null ? null : Number(seaRaw);
+
+  return {
+    air: Number.isFinite(air as number) ? (air as number) : null,
+    sea: Number.isFinite(sea as number) ? (sea as number) : null,
+  };
+}
+
 export default function ProductPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
@@ -60,6 +105,7 @@ export default function ProductPage() {
   });
 
   const product = productQuery.data;
+  const [transportMode, setTransportMode] = useState<"air" | "sea">("air");
 
   const mainImage = useMemo(() => product?.images?.[0]?.url ?? PLACEHOLDER_IMG, [product]);
   const [imgSrc, setImgSrc] = useState<string>(PLACEHOLDER_IMG);
@@ -67,6 +113,18 @@ export default function ProductPage() {
   useEffect(() => {
     setImgSrc(mainImage);
   }, [mainImage]);
+
+  useEffect(() => {
+    if (!product) return;
+    const prices = getTransportPrices(product);
+    if (prices.air != null) {
+      setTransportMode("air");
+      return;
+    }
+    if (prices.sea != null) {
+      setTransportMode("sea");
+    }
+  }, [product]);
 
   const [tab, setTab] = useState<"reviews" | "write">("reviews");
   const [limit, setLimit] = useState(5);
@@ -123,6 +181,14 @@ export default function ProductPage() {
     return all.filter((p) => p.slug !== product?.slug).slice(0, 4);
   }, [similarQuery.data, product?.slug]);
 
+  const transportPrices = useMemo(
+    () => (product ? getTransportPrices(product) : { air: null, sea: null }),
+    [product]
+  );
+  const hasTransportPrices = transportPrices.air != null || transportPrices.sea != null;
+  const selectedTransportPrice = transportMode === "air" ? transportPrices.air : transportPrices.sea;
+  const displayPrice = selectedTransportPrice ?? Number(product?.price ?? 0);
+
   function Stars({ value, size = 20 }: { value: number; size?: number }) {
     return (
       <div className="flex items-center gap-1">
@@ -174,13 +240,77 @@ export default function ProductPage() {
                   onError={() => setImgSrc(PLACEHOLDER_IMG)}
                 />
               </div>
+              <div className="flex items-center gap-2 px-3 py-3 sm:px-4">
+                <a
+                  href={FACEBOOK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
+                >
+                  <FacebookLogo className="h-4 w-4" />
+                </a>
+                <a
+                  href={TIKTOK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="TikTok"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
+                >
+                  <TikTokLogo className="h-4 w-4" />
+                </a>
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
+                >
+                  <InstagramLogo className="h-4 w-4" />
+                </a>
+              </div>
             </CardContent>
           </Card>
 
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">{product.name}</h1>
-              <div className="mt-3 text-2xl font-semibold text-destructive sm:text-3xl">{formatPriceCFA(product.price)}</div>
+              <div className="mt-3 text-2xl font-semibold text-destructive sm:text-3xl">{formatPriceCFA(displayPrice)}</div>
+              {hasTransportPrices ? (
+                <div className="mt-3 space-y-2">
+                  <div className="text-sm font-medium text-foreground">Mode de livraison</div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTransportMode("air")}
+                      disabled={transportPrices.air == null}
+                      className={
+                        "rounded-md border px-3 py-1.5 text-sm " +
+                        (transportMode === "air"
+                          ? "border-chart-2 bg-chart-2/10 text-foreground"
+                          : "border-border bg-background text-muted-foreground") +
+                        (transportPrices.air == null ? " cursor-not-allowed opacity-50" : "")
+                      }
+                    >
+                      Avion {transportPrices.air != null ? `(${formatPriceCFA(transportPrices.air)})` : "(indisponible)"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTransportMode("sea")}
+                      disabled={transportPrices.sea == null}
+                      className={
+                        "rounded-md border px-3 py-1.5 text-sm " +
+                        (transportMode === "sea"
+                          ? "border-chart-2 bg-chart-2/10 text-foreground"
+                          : "border-border bg-background text-muted-foreground") +
+                        (transportPrices.sea == null ? " cursor-not-allowed opacity-50" : "")
+                      }
+                    >
+                      Bateau {transportPrices.sea != null ? `(${formatPriceCFA(transportPrices.sea)})` : "(indisponible)"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {product.description ? (

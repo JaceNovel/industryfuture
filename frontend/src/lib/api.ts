@@ -10,6 +10,7 @@ function getBaseUrl() {
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const token = typeof window !== "undefined" ? getToken() : null;
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
 
   const headers: HeadersInit = {
     Accept: "application/json",
@@ -20,7 +21,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
-  if (init?.body && !(headers as Record<string, string>)["Content-Type"]) {
+  if (init?.body && !isFormData && !(headers as Record<string, string>)["Content-Type"]) {
     (headers as Record<string, string>)["Content-Type"] = "application/json";
   }
 
@@ -48,22 +49,25 @@ export function apiGet<T>(path: string): Promise<T> {
 }
 
 export function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  const payload = typeof FormData !== "undefined" && body instanceof FormData ? body : body ? JSON.stringify(body) : undefined;
   return apiFetch<T>(path, {
     method: "POST",
-    body: body ? JSON.stringify(body) : undefined,
+    body: payload,
   });
 }
 
 export function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  const payload = typeof FormData !== "undefined" && body instanceof FormData ? body : body ? JSON.stringify(body) : undefined;
   return apiFetch<T>(path, {
     method: "PATCH",
-    body: body ? JSON.stringify(body) : undefined,
+    body: payload,
   });
 }
 
 export function apiDelete<T>(path: string, body?: unknown): Promise<T> {
+  const payload = typeof FormData !== "undefined" && body instanceof FormData ? body : body ? JSON.stringify(body) : undefined;
   return apiFetch<T>(path, {
     method: "DELETE",
-    body: body ? JSON.stringify(body) : undefined,
+    body: payload,
   });
 }

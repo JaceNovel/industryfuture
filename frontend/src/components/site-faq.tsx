@@ -30,7 +30,7 @@ function TikTokLogo(props: React.SVGProps<SVGSVGElement>) {
 
 export function SiteFaq() {
   return (
-    <footer className="bg-background">
+    <footer className="bg-chart-3 text-primary-foreground">
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
         <div className="grid gap-10 py-10 md:grid-cols-4 md:py-14">
           {/* Brand */}
@@ -47,23 +47,23 @@ export function SiteFaq() {
               </div>
               <div className="text-xl font-semibold">{"Industrie de l'avenir"}</div>
             </div>
-            <div className="text-sm text-muted-foreground">Votre boutique en ligne de confiance</div>
+            <div className="text-sm text-primary-foreground/80">Votre boutique en ligne de confiance</div>
           </div>
 
           {/* Navigation */}
           <div className="space-y-4">
             <div className="text-base font-semibold">Navigation</div>
             <div className="flex flex-col gap-3 text-sm">
-              <Link href="/shop" className="text-foreground hover:underline">
+              <Link href="/shop" className="text-primary-foreground hover:underline">
                 Produits
               </Link>
-              <Link href="/promotions" className="text-foreground hover:underline">
+              <Link href="/promotions" className="text-primary-foreground hover:underline">
                 Promotions
               </Link>
-              <Link href="#" className="text-foreground hover:underline">
+              <Link href="#" className="text-primary-foreground hover:underline">
                 Offres groupées
               </Link>
-              <Link href="/cart" className="text-foreground hover:underline">
+              <Link href="/cart" className="text-primary-foreground hover:underline">
                 Panier
               </Link>
             </div>
@@ -73,13 +73,13 @@ export function SiteFaq() {
           <div className="space-y-4">
             <div className="text-base font-semibold">Service client</div>
             <div className="flex flex-col gap-3 text-sm">
-              <Link href="#" className="text-foreground hover:underline">
+              <Link href="#" className="text-primary-foreground hover:underline">
                 Assistance importation
               </Link>
-              <Link href="/tracking" className="text-foreground hover:underline">
+              <Link href="/tracking" className="text-primary-foreground hover:underline">
                 Suivi de commande
               </Link>
-              <Link href="#" className="text-foreground hover:underline">
+              <Link href="#" className="text-primary-foreground hover:underline">
                 Contact
               </Link>
             </div>
@@ -88,14 +88,14 @@ export function SiteFaq() {
           {/* Contact */}
           <div className="space-y-4">
             <div className="text-base font-semibold">Contact</div>
-            <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="space-y-3 text-sm text-primary-foreground/80">
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4" />
                 <span>+22879987000</span>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4" />
-                <span>support@industry.com</span>
+                <span>support@futurind.space</span>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4" />
@@ -105,27 +105,27 @@ export function SiteFaq() {
 
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="#"
+                href="https://www.facebook.com/profile.php?id=61578635757172"
                 aria-label="Facebook"
-                className="inline-flex items-center justify-center rounded-md border bg-background p-2 hover:bg-muted/30"
+                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-primary-foreground/15"
                 target="_blank"
                 rel="noreferrer"
               >
                 <FacebookLogo className="h-4 w-4" />
               </a>
               <a
-                href="#"
+                href="https://www.tiktok.com/@a_d_a_n.gladiator?_r=1&_t=ZS-941CIvuHTwv"
                 aria-label="TikTok"
-                className="inline-flex items-center justify-center rounded-md border bg-background p-2 hover:bg-muted/30"
+                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-primary-foreground/15"
                 target="_blank"
                 rel="noreferrer"
               >
                 <TikTokLogo className="h-4 w-4" />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/meslmenehasn?utm_source=qr&igsh=YjJ5aTRid3Zkangy"
                 aria-label="Instagram"
-                className="inline-flex items-center justify-center rounded-md border bg-background p-2 hover:bg-muted/30"
+                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-primary-foreground/15"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -135,22 +135,22 @@ export function SiteFaq() {
           </div>
         </div>
 
-        <div className="border-t py-6 md:py-8">
-          <div className="text-sm text-muted-foreground">© 2025 {"Industrie de l'avenir"}. Tous droits réservés.</div>
+        <div className="border-t border-primary-foreground/20 py-6 md:py-8">
+          <div className="text-sm text-primary-foreground/75">© 2025 {"Industrie de l'avenir"}. Tous droits réservés.</div>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span className="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4">
+            <span className="inline-flex h-10 items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-4">
               <Image src="/payments/paypal.svg" alt="PayPal" width={72} height={20} />
             </span>
-            <span className="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4">
+            <span className="inline-flex h-10 items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-4">
               <Image src="/payments/mastercard.svg" alt="Mastercard" width={88} height={20} />
             </span>
-            <span className="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4">
+            <span className="inline-flex h-10 items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-4">
               <Image src="/payments/visa.svg" alt="VISA" width={54} height={20} />
             </span>
-            <span className="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4">
+            <span className="inline-flex h-10 items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-4">
               <Image src="/payments/tmoney.svg" alt="TMoney" width={62} height={20} />
             </span>
-            <span className="inline-flex h-10 items-center justify-center rounded-md border bg-background px-4">
+            <span className="inline-flex h-10 items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 px-4">
               <Image src="/payments/flooz.svg" alt="Flooz" width={56} height={20} />
             </span>
           </div>

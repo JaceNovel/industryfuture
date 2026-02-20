@@ -42,6 +42,36 @@ import {
   X,
 } from "lucide-react";
 
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61578635757172";
+const TIKTOK_URL = "https://www.tiktok.com/@a_d_a_n.gladiator?_r=1&_t=ZS-941CIvuHTwv";
+const INSTAGRAM_URL = "https://www.instagram.com/meslmenehasn?utm_source=qr&igsh=YjJ5aTRid3Zkangy";
+
+function FacebookLogo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M22 12.06C22 6.505 17.523 2 12 2S2 6.505 2 12.06C2 17.08 5.657 21.24 10.438 22v-7.03H7.898v-2.91h2.54V9.845c0-2.522 1.492-3.915 3.777-3.915 1.094 0 2.238.196 2.238.196v2.475h-1.261c-1.243 0-1.631.78-1.631 1.58v1.88h2.773l-.443 2.91h-2.33V22C18.343 21.24 22 17.08 22 12.06z" />
+    </svg>
+  );
+}
+
+function InstagramLogo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9A5.5 5.5 0 0 1 16.5 22h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm9 2h-9A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4z" />
+      <path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+      <path d="M17.25 6.75a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+    </svg>
+  );
+}
+
+function TikTokLogo(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M14 3v10.06a3.94 3.94 0 1 1-3-3.82V7.06A6 6 0 1 0 16 12V7.2c1.08 1.02 2.52 1.65 4 1.72V6.5c-2.21-.19-3.78-1.43-4.62-3.5H14z" />
+    </svg>
+  );
+}
+
 export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
@@ -195,13 +225,13 @@ export function SiteHeader() {
                     <div className="relative h-7 w-7 shrink-0">
                       <Image
                         src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
-                        alt="IndustryFuture"
+                        alt="Industrie de l'avenir"
                         fill
                         sizes="28px"
                         className="object-contain"
                       />
                     </div>
-                    <SheetTitle className="text-[2.8rem] font-semibold tracking-tight">Jacenshop</SheetTitle>
+                    <SheetTitle className="text-[2.8rem] font-semibold tracking-tight">Industrie de l&apos;avenir</SheetTitle>
                   </div>
 
                   <SheetClose asChild>
@@ -313,6 +343,36 @@ export function SiteHeader() {
                         </SheetClose>
                       </div>
                     )}
+
+                    <div className="mt-4 flex items-center gap-3 px-2">
+                      <a
+                        href={FACEBOOK_URL}
+                        aria-label="Facebook"
+                        className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <FacebookLogo className="h-5 w-5" />
+                      </a>
+                      <a
+                        href={TIKTOK_URL}
+                        aria-label="TikTok"
+                        className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <TikTokLogo className="h-5 w-5" />
+                      </a>
+                      <a
+                        href={INSTAGRAM_URL}
+                        aria-label="Instagram"
+                        className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <InstagramLogo className="h-5 w-5" />
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -323,7 +383,7 @@ export function SiteHeader() {
             <span className="relative -my-2 h-16 w-16 sm:h-20 sm:w-20 md:-my-3 md:h-24 md:w-24">
               <Image
                 src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
-                alt="IndustryFuture"
+                alt="Industrie de l'avenir"
                 fill
                 sizes="(min-width: 768px) 96px, (min-width: 640px) 80px, 64px"
                 className="object-contain"

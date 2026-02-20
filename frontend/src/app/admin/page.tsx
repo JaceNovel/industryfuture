@@ -124,16 +124,16 @@ export default function AdminHome() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-destructive sm:text-4xl">Tableau de bord administratif</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-destructive sm:text-4xl">Tableau de bord administratif</h1>
         <p className="mt-1 text-sm text-muted-foreground">Bienvenue ! Voici votre aperçu.</p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-background">
           <CardContent className="flex items-center justify-between p-6">
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Revenu Total</div>
-              <div className="text-3xl font-semibold">{formatMoneyFCFA(revenueTotal)}</div>
+              <div className="text-2xl font-semibold sm:text-3xl">{formatMoneyFCFA(revenueTotal)}</div>
               <div className="text-sm text-green-600">↑ 0.0%</div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-chart-3/15">
@@ -146,7 +146,7 @@ export default function AdminHome() {
           <CardContent className="flex items-center justify-between p-6">
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Total des Commandes</div>
-              <div className="text-3xl font-semibold">{ordersTotal}</div>
+              <div className="text-2xl font-semibold sm:text-3xl">{ordersTotal}</div>
               <div className="text-sm text-green-600">↑ 0.0%</div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-chart-2/15">
@@ -159,7 +159,7 @@ export default function AdminHome() {
           <CardContent className="flex items-center justify-between p-6">
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Total des Produits</div>
-              <div className="text-3xl font-semibold">{productsTotal}</div>
+              <div className="text-2xl font-semibold sm:text-3xl">{productsTotal}</div>
               <div className="text-sm text-green-600">↑ 0.0%</div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-chart-4/15">
@@ -172,7 +172,7 @@ export default function AdminHome() {
           <CardContent className="flex items-center justify-between p-6">
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Total des Clients</div>
-              <div className="text-3xl font-semibold">{clientsTotal}</div>
+              <div className="text-2xl font-semibold sm:text-3xl">{clientsTotal}</div>
               <div className="text-sm text-green-600">↑ 0.0%</div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-chart-5/15">
@@ -200,7 +200,8 @@ export default function AdminHome() {
             <CardTitle className="text-base">Commandes Récentes</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>ID de commande</TableHead>
@@ -233,6 +234,7 @@ export default function AdminHome() {
                 ) : null}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

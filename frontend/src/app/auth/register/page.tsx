@@ -15,11 +15,6 @@ type RegisterResponse = {
   user: { id: number; name: string; email: string; role: string };
 };
 
-function isNetworkError(err: unknown) {
-  const msg = err instanceof Error ? err.message : String(err);
-  return /failed to fetch|networkerror|load failed/i.test(msg);
-}
-
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -27,23 +22,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
 
   const register = useMutation({
-    mutationFn: async () => {
-      try {
-        return await apiPost<RegisterResponse>("/api/auth/register", { name, email, password });
-      } catch (e) {
-        if (!isNetworkError(e)) throw e;
-
-        return {
-          token: "demo-token",
-          user: {
-            id: 0,
-            name: name || "Compte démo",
-            email,
-            role: "customer",
-          },
-        } satisfies RegisterResponse;
-      }
-    },
+    mutationFn: async () => apiPost<RegisterResponse>("/api/auth/register", { name, email, password }),
     onSuccess: (data) => {
       setAuthCookies(data.token, data.user.role, data.user.name, data.user.email);
       router.push("/account");

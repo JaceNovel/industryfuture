@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { Order } from "@/lib/types";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Eye } from "lucide-react";
 
 type OrdersResponse = { data: Array<Order & { user?: { email: string } }> };
 
@@ -30,7 +32,7 @@ export default function AdminOrdersPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
       <h1 className="text-2xl font-semibold tracking-tight">Commandes</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Listing + update status/tag_delivery.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Cliquez sur l’œil pour voir le détail de la commande.</p>
 
       <Card className="mt-6 bg-card/40 backdrop-blur">
         <CardHeader>
@@ -41,7 +43,8 @@ export default function AdminOrdersPage() {
             <div className="text-sm text-destructive">{(ordersQuery.error as Error).message}</div>
           ) : null}
 
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[780px]">
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
@@ -76,14 +79,22 @@ export default function AdminOrdersPage() {
                   </TableCell>
                   <TableCell>{Number(o.total ?? 0).toFixed(2)} €</TableCell>
                   <TableCell>
-                    <Button variant="secondary" size="sm" onClick={() => updateOrder.mutate({ id: o.id, status: o.status })}>
-                      Refresh
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => updateOrder.mutate({ id: o.id, status: o.status })}>
+                        Sauver
+                      </Button>
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link href={`/admin/orders/${o.id}`} aria-label="Voir détail commande">
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </main>

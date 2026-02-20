@@ -1,45 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiGet, apiPatch } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pencil, Plus, Search } from "lucide-react";
 
 type ProductsResponse = { data: Product[] };
 
 export default function AdminProductsPage() {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("0");
-  const [isPromo, setIsPromo] = useState(false);
+  const [search, setSearch] = useState("");
 
   const productsQuery = useQuery({
     queryKey: ["admin-products"],
     queryFn: () => apiGet<ProductsResponse>("/api/admin/products"),
-  });
-
-  const createProduct = useMutation({
-    mutationFn: () =>
-      apiPost<Product>("/api/admin/products", {
-        name,
-        price: Number(price),
-        status: "active",
-        is_promo: isPromo,
-      }),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["admin-products"] });
-      setOpen(false);
-      setName("");
-      setPrice("0");
-      setIsPromo(false);
-    },
   });
 
   const updatePromo = useMutation({
@@ -50,50 +30,48 @@ export default function AdminProductsPage() {
     },
   });
 
+  const products = productsQuery.data?.data ?? [];
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => {
+      const categoryName = p.categories?.[0]?.name?.toLowerCase() ?? "";
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        categoryName.includes(q)
+      );
+    });
+  }, [products, search]);
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Produits</h1>
-          <p className="text-sm text-muted-foreground">CRUD minimal (création + listing).</p>
+          <p className="text-sm text-muted-foreground">Liste complète des produits.</p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>Créer</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nouveau produit</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label>Nom</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Prix</Label>
-                <Input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" />
-              </div>
-              <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                <span>Mettre en promotion</span>
-                <input
-                  type="checkbox"
-                  checked={isPromo}
-                  onChange={(e) => setIsPromo(e.target.checked)}
-                  className="h-4 w-4"
-                />
-              </label>
-              {createProduct.isError ? (
-                <div className="text-sm text-destructive">{(createProduct.error as Error).message}</div>
-              ) : null}
-              <Button onClick={() => createProduct.mutate()} disabled={createProduct.isPending || !name}>
-                Créer
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button asChild>
+          <Link href="/admin/products/add" className="inline-flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Ajouter un produit
+          </Link>
+        </Button>
       </div>
+
+      <Card className="mt-4 bg-card/40 backdrop-blur">
+        <CardContent className="pt-6">
+          <div className="relative max-w-xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              placeholder="Rechercher des produits..."
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mt-6 bg-card/40 backdrop-blur">
         <CardHeader>
@@ -103,22 +81,26 @@ export default function AdminProductsPage() {
           {productsQuery.isError ? (
             <div className="text-sm text-destructive">{(productsQuery.error as Error).message}</div>
           ) : null}
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[880px]">
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Nom</TableHead>
+                <TableHead>Catégorie</TableHead>
                 <TableHead>Slug</TableHead>
                 <TableHead>Prix</TableHead>
                 <TableHead>Promo</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(productsQuery.data?.data ?? []).map((p) => (
+              {filteredProducts.map((p) => (
                 <TableRow key={p.id ?? p.slug}>
                   <TableCell>{p.id}</TableCell>
                   <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell>{p.categories?.[0]?.name ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{p.slug}</TableCell>
                   <TableCell>{Number(p.price ?? 0).toFixed(2)} €</TableCell>
                   <TableCell>
@@ -134,10 +116,22 @@ export default function AdminProductsPage() {
                     ) : null}
                   </TableCell>
                   <TableCell>{p.status}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end">
+                      {typeof p.id === "number" ? (
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/admin/products/${p.id}/edit`} aria-label="Modifier">
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </main>

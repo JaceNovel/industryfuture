@@ -18,26 +18,17 @@ function formatPrice(v: unknown) {
   return `${n.toFixed(2)} €`;
 }
 
-const samplePopular: Array<Pick<Product, "name" | "price">> = [
-  { name: "Variateur industriel", price: 129.9 },
-  { name: "Capteur de pression", price: 39.9 },
-  { name: "Moteur 3 phases", price: 249.0 },
-  { name: "Automate programmable", price: 189.0 },
-  { name: "Kit maintenance", price: 24.9 },
-];
-
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
 
-type PopularItem = Pick<Product, "name" | "price"> | Product;
+type PopularItem = Product;
 
 function ProductTile({ item, idx }: { item: PopularItem; idx: number }) {
-  const isReal = "slug" in item;
-  const href = isReal ? `/product/${item.slug}` : "/shop";
-  const img = isReal ? (item.images?.[0]?.url ?? PLACEHOLDER_IMG) : PLACEHOLDER_IMG;
+  const href = `/product/${item.slug}`;
+  const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
 
   return (
     <Link
-      key={isReal ? (item.id ?? item.slug) : `sample-${idx}`}
+      key={item.id ?? item.slug ?? `item-${idx}`}
       href={href}
       className="group w-[76vw] max-w-[260px] shrink-0 rounded-xl border bg-card/40 backdrop-blur hover:bg-muted/20 sm:w-[250px]"
     >
@@ -56,7 +47,7 @@ function ProductTile({ item, idx }: { item: PopularItem; idx: number }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={img}
-            alt={isReal ? (item.images?.[0]?.alt ?? item.name) : item.name}
+            alt={item.images?.[0]?.alt ?? item.name}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           />
         )}
@@ -71,13 +62,20 @@ function ProductTile({ item, idx }: { item: PopularItem; idx: number }) {
 
 function ProductMarqueeRow({ items, direction }: { items: PopularItem[]; direction: "left" | "right" }) {
   const loopItems = [...items, ...items];
+  const [isPaused, setIsPaused] = useState(false);
 
   return (
     <div className="overflow-hidden">
-      <div className={`home-marquee-track ${direction === "left" ? "home-marquee-left" : "home-marquee-right"}`}>
+      <div
+        className={`home-marquee-track ${direction === "left" ? "home-marquee-left" : "home-marquee-right"} ${isPaused ? "home-marquee-paused" : ""}`}
+        onPointerDown={() => setIsPaused(true)}
+        onPointerUp={() => setIsPaused(false)}
+        onPointerCancel={() => setIsPaused(false)}
+        onPointerLeave={() => setIsPaused(false)}
+      >
         {loopItems.map((item, idx) => (
           <ProductTile
-            key={`${"slug" in item ? item.id ?? item.slug : `sample-${idx % items.length}`}-${idx}`}
+            key={`${item.id ?? item.slug ?? `item-${idx % Math.max(items.length, 1)}`}-${idx}`}
             item={item}
             idx={idx}
           />
@@ -98,11 +96,17 @@ export default function Home() {
     queryKey: ["products", "featured"],
     queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=featured"),
   });
+  const productsQuery = useQuery({
+    queryKey: ["products", "newest-home"],
+    queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=newest"),
+  });
   const featured = featuredQuery.data?.data ?? [];
-  const popularItems: PopularItem[] = (featured.length ? featured : samplePopular).slice(0, 5);
-  const secondaryItems: PopularItem[] = (featured.length > 5 ? featured.slice(5, 10) : featured).length
-    ? (featured.length > 5 ? featured.slice(5, 10) : featured).slice(0, 5)
-    : samplePopular.slice(0, 5);
+  const fallbackProducts = productsQuery.data?.data ?? [];
+  const sourceProducts = featured.length ? featured : fallbackProducts;
+  const popularItems: PopularItem[] = sourceProducts.slice(0, 5);
+  const secondaryItems: PopularItem[] = sourceProducts.length
+    ? (sourceProducts.length > 5 ? sourceProducts.slice(5, 10) : sourceProducts).slice(0, 5)
+    : [];
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-10">
@@ -207,15 +211,23 @@ export default function Home() {
         </div>
 
         <div className="mt-4">
-          {featuredQuery.isLoading ? <div className="text-sm text-muted-foreground">Chargement…</div> : null}
-          {featuredQuery.isError ? (
-            <div className="text-sm text-muted-foreground">API indisponible, produits d’exemple affichés.</div>
+          {featuredQuery.isLoading && productsQuery.isLoading ? (
+            <div className="text-sm text-muted-foreground">Chargement…</div>
+          ) : null}
+          {featuredQuery.isError && productsQuery.isError ? (
+            <div className="text-sm text-muted-foreground">API indisponible.</div>
           ) : null}
 
-          <div className="mt-4 space-y-4">
-            <ProductMarqueeRow items={popularItems} direction="right" />
-            <ProductMarqueeRow items={secondaryItems} direction="left" />
-          </div>
+          {!featuredQuery.isLoading && !productsQuery.isLoading && popularItems.length === 0 ? (
+            <div className="text-sm text-muted-foreground">Aucun article disponible.</div>
+          ) : null}
+
+          {popularItems.length > 0 ? (
+            <div className="mt-4 space-y-4">
+              <ProductMarqueeRow items={popularItems} direction="right" />
+              {secondaryItems.length > 0 ? <ProductMarqueeRow items={secondaryItems} direction="left" /> : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
