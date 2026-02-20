@@ -18,6 +18,10 @@ use App\Http\Controllers\Api\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\Admin\ProductImageController as AdminProductImageController;
+use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\Admin\GroupedOfferController as AdminGroupedOfferController;
+use App\Http\Controllers\Api\Admin\WithdrawalRequestController as AdminWithdrawalRequestController;
+use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 
 Route::get('/health', HealthController::class);
 
@@ -62,6 +66,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
         Route::apiResource('products', AdminProductController::class);
         Route::apiResource('coupons', AdminCouponController::class);
+        Route::apiResource('grouped-offers', AdminGroupedOfferController::class);
+        Route::apiResource('users', AdminUserController::class)->only(['index', 'store', 'show', 'destroy']);
+        Route::apiResource('withdrawal-requests', AdminWithdrawalRequestController::class)->only(['index', 'store', 'show']);
+        Route::get('notifications', [AdminNotificationController::class, 'index']);
 
         Route::get('products/{product}/images', [AdminProductImageController::class, 'index']);
         Route::post('products/{product}/images', [AdminProductImageController::class, 'store']);
@@ -69,6 +77,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('product-images/{productImage}', [AdminProductImageController::class, 'destroy']);
 
         Route::get('orders', [AdminOrderController::class, 'index']);
+        Route::get('orders/{order}', [AdminOrderController::class, 'show']);
         Route::patch('orders/{order}', [AdminOrderController::class, 'update']);
+        Route::get('orders/{order}/delivery-note', [AdminOrderController::class, 'deliveryNote']);
+
+        Route::get('withdrawal-requests/{withdrawalRequest}/proof-pdf', [AdminWithdrawalRequestController::class, 'proofPdf']);
     });
 });

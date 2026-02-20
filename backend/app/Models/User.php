@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Address;
+use App\Models\Order;
+use App\Models\AdminWithdrawalRequest;
 
 class User extends Authenticatable
 {
@@ -52,5 +54,15 @@ class User extends Authenticatable
     public function addresses()
     {
         return $this->hasMany(Address::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function withdrawalRequests()
+    {
+        return $this->hasMany(AdminWithdrawalRequest::class);
     }
 }

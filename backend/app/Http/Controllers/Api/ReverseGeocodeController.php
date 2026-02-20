@@ -20,7 +20,7 @@ class ReverseGeocodeController extends Controller
 
         $res = Http::timeout(8)
             ->withHeaders([
-                'User-Agent' => "IndustryFuture/1.0 (support@industry.com)",
+                'User-Agent' => "IndustrieDeLAvenir/1.0 (support@futurind.space)",
                 'Accept' => 'application/json',
             ])
             ->get('https://nominatim.openstreetmap.org/reverse', [

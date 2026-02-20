@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\ProductImage;
+use Illuminate\Support\Facades\Storage;
 
 class ProductImageController extends Controller
 {
@@ -18,14 +19,21 @@ class ProductImageController extends Controller
     public function store(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'url' => ['required', 'string', 'max:2048'],
+            'url' => ['nullable', 'string', 'max:2048', 'required_without:image'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096', 'required_without:url'],
             'alt' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
+        $url = $validated['url'] ?? null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $url = url(Storage::disk('public')->url($path));
+        }
+
         $image = ProductImage::create([
             'product_id' => $product->id,
-            'url' => $validated['url'],
+            'url' => $url,
             'alt' => $validated['alt'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);

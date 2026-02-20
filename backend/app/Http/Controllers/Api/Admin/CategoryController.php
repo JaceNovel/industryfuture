@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
@@ -22,17 +23,24 @@ class CategoryController extends Controller
             'icon' => ['nullable', 'string', 'max:64'],
             'description' => ['nullable', 'string'],
             'image_url' => ['nullable', 'string', 'max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
         $slugBase = $validated['slug'] ?? Str::slug($validated['name']);
         $slug = $this->uniqueSlug($slugBase);
+
+        $imageUrl = $validated['image_url'] ?? null;
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('categories', 'public');
+            $imageUrl = url(Storage::disk('public')->url($path));
+        }
 
         $category = Category::create([
             'name' => $validated['name'],
             'slug' => $slug,
             'icon' => $validated['icon'] ?? null,
             'description' => $validated['description'] ?? null,
-            'image_url' => $validated['image_url'] ?? null,
+            'image_url' => $imageUrl,
         ]);
 
         return response()->json($category, 201);
@@ -51,11 +59,17 @@ class CategoryController extends Controller
             'icon' => ['nullable', 'string', 'max:64'],
             'description' => ['nullable', 'string'],
             'image_url' => ['nullable', 'string', 'max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
         if (array_key_exists('slug', $validated)) {
             $slug = $this->uniqueSlug($validated['slug'], $category->id);
             $validated['slug'] = $slug;
+        }
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('categories', 'public');
+            $validated['image_url'] = url(Storage::disk('public')->url($path));
         }
 
         $category->fill($validated);

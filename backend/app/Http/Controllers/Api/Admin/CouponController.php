@@ -16,20 +16,32 @@ class CouponController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:64', 'unique:coupons,code'],
-            'type' => ['nullable', 'in:percent,fixed'],
+            'description' => ['nullable', 'string'],
+            'type' => ['nullable', 'in:percent,fixed,shipping'],
             'amount' => ['required', 'numeric', 'min:0'],
+            'min_amount' => ['nullable', 'numeric', 'min:0'],
+            'max_discount' => ['nullable', 'numeric', 'min:0'],
+            'applies_to' => ['nullable', 'in:all_products,category,product'],
             'active' => ['nullable', 'boolean'],
+            'unique_per_user' => ['nullable', 'boolean'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $coupon = Coupon::create([
+            'name' => $validated['name'],
             'code' => $validated['code'],
+            'description' => $validated['description'] ?? null,
             'type' => $validated['type'] ?? 'fixed',
             'amount' => $validated['amount'],
+            'min_amount' => $validated['min_amount'] ?? null,
+            'max_discount' => $validated['max_discount'] ?? null,
+            'applies_to' => $validated['applies_to'] ?? 'all_products',
             'active' => $validated['active'] ?? true,
+            'unique_per_user' => $validated['unique_per_user'] ?? false,
             'starts_at' => $validated['starts_at'] ?? null,
             'ends_at' => $validated['ends_at'] ?? null,
             'usage_limit' => $validated['usage_limit'] ?? null,
@@ -47,10 +59,16 @@ class CouponController extends Controller
     public function update(Request $request, Coupon $coupon)
     {
         $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
             'code' => ['sometimes', 'string', 'max:64', 'unique:coupons,code,'.$coupon->id],
-            'type' => ['nullable', 'in:percent,fixed'],
+            'description' => ['nullable', 'string'],
+            'type' => ['nullable', 'in:percent,fixed,shipping'],
             'amount' => ['nullable', 'numeric', 'min:0'],
+            'min_amount' => ['nullable', 'numeric', 'min:0'],
+            'max_discount' => ['nullable', 'numeric', 'min:0'],
+            'applies_to' => ['nullable', 'in:all_products,category,product'],
             'active' => ['nullable', 'boolean'],
+            'unique_per_user' => ['nullable', 'boolean'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
