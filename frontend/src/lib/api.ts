@@ -10,6 +10,7 @@ function getBaseUrl() {
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const token = typeof window !== "undefined" ? getToken() : null;
+  const skipAuthHeader = path.startsWith("/api/auth/login") || path.startsWith("/api/auth/register");
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
 
   const headers: HeadersInit = {
@@ -17,7 +18,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     ...(init?.headers ?? {}),
   };
 
-  if (token) {
+  if (token && !skipAuthHeader) {
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 

@@ -85,11 +85,25 @@ export function SiteHeader() {
   const accountRef = useRef<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
+  const syncAuthState = () => {
     setToken(getToken());
     setRole(getRole());
     setName(getName());
     setEmail(getEmail());
+  };
+
+  useEffect(() => {
+    syncAuthState();
+  }, []);
+
+  useEffect(() => {
+    syncAuthState();
+  }, [pathname]);
+
+  useEffect(() => {
+    const onFocus = () => syncAuthState();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   const active = (href: string) =>
