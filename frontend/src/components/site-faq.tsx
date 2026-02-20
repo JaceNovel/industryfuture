@@ -30,20 +30,25 @@ function TikTokLogo(props: React.SVGProps<SVGSVGElement>) {
 
 export function SiteFaq() {
   return (
-    <footer className="bg-chart-3 text-primary-foreground">
+    <footer
+      id="site-footer"
+      className="rounded-t-3xl bg-primary text-primary-foreground shadow-[0_-14px_40px_-28px_rgba(12,28,66,0.7)]"
+    >
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
-        <div className="grid gap-10 py-10 md:grid-cols-4 md:py-14">
+        <div className="flex flex-wrap items-start justify-center gap-10 py-10 text-center md:grid md:grid-cols-4 md:justify-between md:py-14 md:text-left">
           {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="relative h-10 w-10">
-                <Image
-                  src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
-                  alt={"Industrie de l'avenir"}
-                  fill
-                  sizes="40px"
-                  className="object-contain"
-                />
+          <div className="w-full space-y-4 md:w-auto">
+            <div className="flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-start">
+              <div className="footer-logo-shell relative flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-[0_10px_30px_-15px_rgba(12,28,66,0.45)]">
+                <div className="relative h-10 w-10">
+                  <Image
+                    src="/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png"
+                    alt={"Industrie de l'avenir"}
+                    fill
+                    sizes="40px"
+                    className="object-contain"
+                  />
+                </div>
               </div>
               <div className="text-xl font-semibold">{"Industrie de l'avenir"}</div>
             </div>
@@ -51,63 +56,63 @@ export function SiteFaq() {
           </div>
 
           {/* Navigation */}
-          <div className="space-y-4">
+          <div className="min-w-[180px] flex-1 space-y-4 text-center md:flex-none md:text-left">
             <div className="text-base font-semibold">Navigation</div>
             <div className="flex flex-col gap-3 text-sm">
-              <Link href="/shop" className="text-primary-foreground hover:underline">
+              <Link href="/shop" className="text-primary-foreground hover:text-accent hover:underline">
                 Produits
               </Link>
-              <Link href="/promotions" className="text-primary-foreground hover:underline">
+              <Link href="/promotions" className="text-primary-foreground hover:text-accent hover:underline">
                 Promotions
               </Link>
-              <Link href="#" className="text-primary-foreground hover:underline">
+              <Link href="#" className="text-primary-foreground hover:text-accent hover:underline">
                 Offres groupées
               </Link>
-              <Link href="/cart" className="text-primary-foreground hover:underline">
+              <Link href="/cart" className="text-primary-foreground hover:text-accent hover:underline">
                 Panier
               </Link>
             </div>
           </div>
 
           {/* Service client */}
-          <div className="space-y-4">
+          <div className="min-w-[180px] flex-1 space-y-4 text-center md:flex-none md:text-left">
             <div className="text-base font-semibold">Service client</div>
             <div className="flex flex-col gap-3 text-sm">
-              <Link href="#" className="text-primary-foreground hover:underline">
+              <Link href="#" className="text-primary-foreground hover:text-accent hover:underline">
                 Assistance importation
               </Link>
-              <Link href="/tracking" className="text-primary-foreground hover:underline">
+              <Link href="/tracking" className="text-primary-foreground hover:text-accent hover:underline">
                 Suivi de commande
               </Link>
-              <Link href="#" className="text-primary-foreground hover:underline">
+              <Link href="#" className="text-primary-foreground hover:text-accent hover:underline">
                 Contact
               </Link>
             </div>
           </div>
 
           {/* Contact */}
-          <div className="space-y-4">
+          <div className="min-w-[200px] flex-1 space-y-4 text-center md:flex-none md:text-left">
             <div className="text-base font-semibold">Contact</div>
             <div className="space-y-3 text-sm text-primary-foreground/80">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3 md:justify-start">
                 <Phone className="h-4 w-4" />
                 <span>+22879987000</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3 md:justify-start">
                 <Mail className="h-4 w-4" />
                 <span>support@futurind.space</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3 md:justify-start">
                 <MapPin className="h-4 w-4" />
                 <span>Lomé, Togo</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center justify-center gap-3 pt-2 md:justify-start">
               <a
                 href="https://www.facebook.com/profile.php?id=61578635757172"
                 aria-label="Facebook"
-                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-primary-foreground/15"
+                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-accent/20"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -116,7 +121,7 @@ export function SiteFaq() {
               <a
                 href="https://www.tiktok.com/@a_d_a_n.gladiator?_r=1&_t=ZS-941CIvuHTwv"
                 aria-label="TikTok"
-                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-primary-foreground/15"
+                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-accent/20"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -125,7 +130,7 @@ export function SiteFaq() {
               <a
                 href="https://www.instagram.com/meslmenehasn?utm_source=qr&igsh=YjJ5aTRid3Zkangy"
                 aria-label="Instagram"
-                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-primary-foreground/15"
+                className="inline-flex items-center justify-center rounded-md border border-primary-foreground/20 bg-primary-foreground/10 p-2 text-primary-foreground hover:bg-accent/20"
                 target="_blank"
                 rel="noreferrer"
               >

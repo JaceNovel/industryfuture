@@ -123,6 +123,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer components {
@@ -169,6 +172,27 @@
   }
 }
 
+@keyframes gold-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes badge-pulse {
+  0%,
+  100% {
+    box-shadow: 0 10px 24px -18px rgba(14, 26, 43, 0.45);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 18px 34px -22px rgba(76, 175, 80, 0.45);
+    transform: translateY(-2px);
+  }
+}
+
 @media (max-width: 640px) {
   .home-marquee-track {
     padding-inline: 0.5rem;
@@ -184,5 +208,189 @@
   .home-marquee-left,
   .home-marquee-right {
     animation: none;
+  }
+}
+
+@layer components {
+  .glass-surface {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 20px 48px -32px rgba(14, 26, 43, 0.35);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    background-image: linear-gradient(135deg, rgba(14, 26, 43, 0.08), rgba(20, 38, 60, 0.02));
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 18px 36px -28px rgba(14, 26, 43, 0.35);
+  }
+
+  .product-grid,
+  .steps-grid {
+    perspective: 1200px;
+  }
+
+  .product-card,
+  .step-card,
+  .value-card {
+    transform-style: preserve-3d;
+    will-change: transform, box-shadow;
+    transition:
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .product-card:hover,
+  .step-card:hover,
+  .value-card:hover {
+    transform: translateY(-4px) rotateX(2deg) rotateY(-2deg) scale(1.01);
+    box-shadow:
+      inset 0 0 18px rgba(20, 38, 60, 0.15),
+      inset 0 0 24px rgba(76, 175, 80, 0.12),
+      0 24px 44px -26px rgba(212, 175, 55, 0.45),
+      0 0 18px rgba(76, 175, 80, 0.2);
+  }
+
+  .step-card:hover .step-icon {
+    transform: translateY(-2px) scale(1.05);
+  }
+
+  .step-icon {
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .gold-tag {
+    box-shadow: 0 10px 20px -16px rgba(212, 175, 55, 0.6);
+    animation: badge-pulse 4s ease-in-out infinite;
+  }
+
+  .promo-tag {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(20, 38, 60, 0.6));
+    box-shadow: 0 12px 22px -18px rgba(76, 175, 80, 0.65);
+    animation: badge-pulse 4.5s ease-in-out infinite;
+  }
+
+
+  .gold-button {
+    background-image: linear-gradient(135deg, #c6a75e, #e6c97a, #f8e6b0, #d4af37, #b8962e);
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    border-radius: 999px;
+    color: #0e1a2b !important;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 12px 20px -16px rgba(14, 26, 43, 0.45);
+    transition:
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-position 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .gold-button:hover,
+  .gold-button:focus-visible {
+    transform: scale(1.02);
+    background-position: 100% 50%;
+    animation: gold-shift 1.8s ease-in-out infinite alternate;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.75), 0 18px 28px -18px rgba(212, 175, 55, 0.55), 0 0 16px rgba(76, 175, 80, 0.2);
+  }
+
+  .steps-line {
+    background-image: linear-gradient(135deg, #c6a75e, #e6c97a, #4caf50, #14263c);
+  }
+  .site-header .nav-link {
+    position: relative;
+    text-decoration: none;
+    transition:
+      color 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-header .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #c6a75e, #e6c97a, #f8e6b0, #d4af37, #b8962e);
+    height: 2px;
+    bottom: -4px;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-header .nav-link:hover::after,
+  .site-header .nav-link:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  .site-header .nav-link:hover,
+  .site-header .nav-link:focus-visible {
+    background-image: linear-gradient(135deg, #c6a75e, #e6c97a, #f8e6b0, #d4af37, #b8962e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.22));
+  }
+
+  .site-header .nav-link:hover svg,
+  .site-header .nav-link:focus-visible svg {
+    color: #0e1a2b;
+    filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.35));
+  }
+
+  .site-header nav .nav-shop-cta {
+    background-image: linear-gradient(135deg, #c6a75e, #e6c97a, #f8e6b0, #d4af37, #b8962e);
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    border-radius: 999px;
+    color: #0e1a2b !important;
+    padding: 0.35rem 0.9rem;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 10px 18px -14px rgba(14, 26, 43, 0.45);
+    transition:
+      transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-position 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-header nav .nav-shop-cta:hover,
+  .site-header nav .nav-shop-cta:focus-visible {
+    transform: scale(1.02);
+    background-position: 100% 50%;
+    animation: gold-shift 1.6s ease-in-out infinite alternate;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.7), 0 16px 26px -16px rgba(14, 26, 43, 0.55);
+  }
+
+
+  #site-footer {
+    border-top-left-radius: 48px !important;
+    border-top-right-radius: 48px !important;
+    overflow: hidden;
+    box-shadow: 0 -18px 45px -36px rgba(14, 26, 43, 0.45) !important;
+  }
+
+  #site-footer .footer-logo-shell {
+    background-color: #fff !important;
+    border-radius: 50% !important;
+    padding: 0.4rem !important;
+    box-shadow: 0 14px 26px -18px rgba(14, 26, 43, 0.45);
+  }
+
+  #site-footer a:hover,
+  #site-footer a:focus-visible {
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.25), 0 0 14px rgba(76, 175, 80, 0.2);
+  }
+
+  @media (max-width: 640px) {
+    .product-card:hover,
+    .step-card:hover,
+    .value-card:hover {
+      transform: translateY(-2px) scale(1.005);
+    }
+
+    .gold-tag,
+    .promo-tag {
+      animation-duration: 7s;
+    }
   }
 }

@@ -84,26 +84,14 @@ export function SiteHeader() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isFooterInView, setIsFooterInView] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
-  const syncAuthState = () => {
+  useEffect(() => {
     setToken(getToken());
     setRole(getRole());
     setName(getName());
     setEmail(getEmail());
-  };
-
-  useEffect(() => {
-    syncAuthState();
-  }, []);
-
-  useEffect(() => {
-    syncAuthState();
-  }, [pathname]);
-
-  useEffect(() => {
-    const onFocus = () => syncAuthState();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   const active = (href: string) =>
@@ -129,6 +117,40 @@ export function SiteHeader() {
     setAccountOpen(false);
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const updateViewport = () => {
+      if (typeof window === "undefined") return;
+      setIsMobileView(window.matchMedia("(max-width: 767px)").matches);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (!isMobileView) {
+      setIsFooterInView(false);
+      return undefined;
+    }
+
+    const footerEl = document.getElementById("site-footer");
+    if (!footerEl) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsFooterInView(entry.isIntersecting),
+      {
+        root: null,
+        threshold: 0,
+        rootMargin: "0px 0px -80% 0px",
+      }
+    );
+
+    observer.observe(footerEl);
+    return () => observer.disconnect();
+  }, [isMobileView]);
 
   useEffect(() => {
     if (!categoriesOpen) return;
@@ -218,7 +240,11 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 border-b bg-background">
+    <header
+      className={`site-header sticky top-0 z-20 border-b transition-colors duration-300 ${
+        isMobileView && isFooterInView ? "bg-white" : "bg-background"
+      }`}
+    >
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 md:px-6">
         {/* Left: brand + burger + primary links */}
         <div className="flex items-center gap-2">
@@ -251,7 +277,7 @@ export function SiteHeader() {
                   <SheetClose asChild>
                     <button
                       type="button"
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-destructive/40 text-foreground hover:bg-muted/30"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border-2 border-primary/40 text-foreground hover:bg-muted/30"
                       aria-label="Fermer"
                     >
                       <X className="h-5 w-5" />
@@ -412,7 +438,7 @@ export function SiteHeader() {
               onClick={() => setCategoriesOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={categoriesOpen}
-              className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-muted/30"
+              className="nav-link inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground transition-colors duration-200 hover:bg-transparent hover:text-accent"
             >
               <Menu className="h-5 w-5" />
               <span>Catégories</span>
@@ -431,7 +457,7 @@ export function SiteHeader() {
                         key={c.slug}
                         href={`/shop?category=${encodeURIComponent(c.slug)}`}
                         role="menuitem"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted/30"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200 hover:bg-transparent hover:text-accent"
                         onClick={() => setCategoriesOpen(false)}
                       >
                         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -448,15 +474,18 @@ export function SiteHeader() {
           </div>
 
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-            <Link href="/promotions" className={active("/promotions")}>
+            <Link href="/promotions" className={`${active("/promotions")} nav-link transition-colors duration-200 hover:text-accent`}>
               Promotions
             </Link>
-            <Link href="/shop" className="inline-flex items-center gap-2 text-destructive hover:text-destructive/90">
+            <Link
+              href="/shop"
+              className="nav-link nav-shop-cta inline-flex items-center gap-2 text-primary transition-colors duration-200 hover:text-accent"
+            >
               <ShoppingCart className="h-4 w-4" />
               Produits
             </Link>
             {role === "admin" ? (
-              <Link href="/admin" className={active("/admin")}>
+              <Link href="/admin" className={`${active("/admin")} nav-link transition-colors duration-200 hover:text-accent`}>
                 Admin
               </Link>
             ) : null}
@@ -468,7 +497,7 @@ export function SiteHeader() {
           <div className="relative">
             <Input
               placeholder="Rechercher un produit…"
-              className="h-10 pr-10"
+              className="h-10 pr-10 transition-colors duration-200 hover:border-accent focus-visible:border-accent"
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;
                 const q = (e.target as HTMLInputElement).value?.trim();
@@ -483,22 +512,15 @@ export function SiteHeader() {
         {/* Right: quick actions */}
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <Link
-            href="/shop"
-            className="inline-flex items-center rounded-md p-2 hover:bg-muted/30 md:hidden"
-            aria-label="Recherche"
-          >
-            <Search className="h-5 w-5" />
-          </Link>
-          <Link
             href="/tracking"
-            className="hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-muted/30 md:inline-flex"
+            className="nav-link hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-transparent hover:text-accent md:inline-flex"
           >
             <Truck className="h-4 w-4" />
             <span>Suivi</span>
           </Link>
           <Link
             href={token ? "/account/orders" : "/auth/login"}
-            className="hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-muted/30 md:inline-flex"
+            className="nav-link hidden items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-transparent hover:text-accent md:inline-flex"
           >
             <Package className="h-4 w-4" />
             <span>Commandes</span>
@@ -511,7 +533,7 @@ export function SiteHeader() {
                 onClick={() => setAccountOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
-                className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-muted/30"
+                className="nav-link inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-transparent hover:text-accent"
               >
                 <User className="h-4 w-4" />
                 <span>Compte</span>
@@ -519,7 +541,7 @@ export function SiteHeader() {
             ) : (
               <Link
                 href="/auth/login"
-                className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground hover:bg-muted/30"
+                className="nav-link inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-foreground transition-colors duration-200 hover:bg-transparent hover:text-accent"
               >
                 <User className="h-4 w-4" />
                 <span>Compte</span>
@@ -583,12 +605,12 @@ export function SiteHeader() {
           <Link
             href="/cart"
             data-cart-target
-            className="relative inline-flex items-center rounded-md p-2 hover:bg-muted/30"
+            className="nav-link relative inline-flex items-center rounded-md p-2 hover:bg-transparent"
             aria-label="Panier"
           >
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 ? (
-              <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground">
+              <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
                 {cartCount}
               </span>
             ) : null}
