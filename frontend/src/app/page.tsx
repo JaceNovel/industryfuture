@@ -154,7 +154,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="w-full bg-white pb-14 md:pb-20">
+    <main className="home-main w-full bg-white pb-14 md:pb-20">
       <div className="mobile-banner">
         <section className="w-full bg-white px-0 pb-0 pt-0 sm:px-0 md:px-12 md:pb-10 md:pt-10">
           <motion.section
@@ -186,7 +186,7 @@ export default function Home() {
         <div className="section-divider mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
       </section>
 
-      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+      <section className="popular-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
         <div className="mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -273,7 +273,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+      <section className="cta-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
         <div className="section-divider mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
         <div className="mx-auto max-w-6xl">
           <motion.div
@@ -347,7 +347,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+      <section className="cta-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
