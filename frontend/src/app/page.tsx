@@ -131,8 +131,8 @@ export default function Home() {
           variant="outline"
           className="explore-button-mobile rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
         >
-          <Link href="/shop" className="inline-flex items-center gap-2">
-            Explorer la boutique <ArrowRight className="h-4 w-4" />
+          <Link href="/shop" className="inline-flex items-center">
+            Explorer la boutique
           </Link>
         </Button>
       </section>
