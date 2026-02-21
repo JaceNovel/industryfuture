@@ -692,9 +692,13 @@
   }
 
   .why-choose-section {
-    border-top: 1px solid rgba(212, 175, 55, 0.3);
+    border-top: none !important;
     margin-top: 30px;
     padding-top: 30px;
+  }
+
+  .why-choose-section .section-divider {
+    display: none !important;
   }
 
   /* Title micro animation (mobile) */
