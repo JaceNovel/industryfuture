@@ -2,20 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import {
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-} from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
   Headset,
   Layers,
+  PackageCheck,
   ShieldCheck,
   ShoppingBag,
-  Sparkles,
   Truck,
   Zap,
 } from "lucide-react";
@@ -23,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
@@ -31,63 +26,31 @@ function formatPrice(v: unknown) {
 }
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
-
-const GOLD_GRADIENT =
-  "linear-gradient(135deg, #C6A75E, #E6C97A, #F8E6B0, #D4AF37, #B8962E)";
+const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 type PopularItem = Product;
 
-function useInViewOnce<T extends Element>(options?: IntersectionObserverInit) {
-  const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(false);
+export default function Home() {
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (!ref.current || inView) return undefined;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setInView(true);
-        observer.disconnect();
+    const video = heroVideoRef.current ?? document.getElementById("heroVideo");
+    if (!video || !(video instanceof HTMLVideoElement)) return;
+
+    const stopAtFourSeconds = () => {
+      if (video.currentTime >= 4) {
+        video.pause();
+        video.removeEventListener("timeupdate", stopAtFourSeconds);
       }
-    }, options);
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [inView, options]);
+    };
 
-  return { ref, inView };
-}
+    video.addEventListener("timeupdate", stopAtFourSeconds);
 
-function MagneticWrap({ children, className }: { children: React.ReactNode; className?: string }) {
-  const reduceMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement | null>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 240, damping: 18 });
-  const springY = useSpring(y, { stiffness: 240, damping: 18 });
+    return () => {
+      video.removeEventListener("timeupdate", stopAtFourSeconds);
+    };
+  }, []);
 
-  return (
-    <motion.div
-      ref={ref}
-      className={className}
-      style={{ x: springX, y: springY }}
-      onMouseMove={(event) => {
-        if (reduceMotion || !ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        const dx = event.clientX - (rect.left + rect.width / 2);
-        const dy = event.clientY - (rect.top + rect.height / 2);
-        x.set(dx * 0.12);
-        y.set(dy * 0.12);
-      }}
-      onMouseLeave={() => {
-        x.set(0);
-        y.set(0);
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-export default function Home() {
   const featuredQuery = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=featured"),
@@ -101,23 +64,6 @@ export default function Home() {
   const sourceProducts = featured.length ? featured : fallbackProducts;
   const popularItems: PopularItem[] = sourceProducts.slice(0, 8);
 
-  const fadeUp = {
-    hidden: { opacity: 0, y: 18 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-  };
-
-  const { ref: productsRef, inView: productsInView } = useInViewOnce<HTMLDivElement>({
-    threshold: 0.18,
-  });
-  const { ref: stepsRef, inView: stepsInView } = useInViewOnce<HTMLDivElement>({
-    threshold: 0.2,
-  });
-  const { ref: valuesRef, inView: valuesInView } = useInViewOnce<HTMLDivElement>({
-    threshold: 0.2,
-  });
-  const { ref: ctaRef, inView: ctaInView } = useInViewOnce<HTMLDivElement>({
-    threshold: 0.2,
-  });
   const steps = [
     {
       title: "Selection du produit",
@@ -141,261 +87,239 @@ export default function Home() {
     },
   ];
 
-  const values = [
+  const reasons = [
     {
       title: "Livraison rapide",
-      description: "Des delais courts et un suivi clair.",
+      description: "Expédition prioritaire et suivi en temps réel.",
       icon: Truck,
     },
     {
-      title: "Qualite premium",
-      description: "Selection rigoureuse des produits.",
-      icon: BadgeCheck,
-    },
-    {
       title: "Paiement securise",
-      description: "Transactions protegees en continu.",
+      description: "Transactions chiffrées et protection continue.",
       icon: ShieldCheck,
     },
     {
-      title: "Support client",
-      description: "Equipe disponible avant et apres achat.",
+      title: "Produits certifies",
+      description: "Qualité vérifiée sur chaque référence premium.",
+      icon: BadgeCheck,
+    },
+    {
+      title: "Support 24/7",
+      description: "Équipe dédiée avant, pendant et après l’achat.",
       icon: Headset,
     },
   ];
 
   return (
-    <motion.main
-      className="w-full"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <section className="relative w-full">
-        <div className="relative h-[48vh] min-h-[260px] max-h-[520px] w-full sm:min-h-[320px] md:h-[62vh] md:min-h-[420px] md:max-h-[720px]">
-          <Image
-            src="/image.png"
-            alt="Banniere principale"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
+    <main className="w-full bg-white pb-14 md:pb-20">
+      <section className="w-full bg-white px-0 pb-0 pt-0 sm:px-0 md:px-12 md:pb-10 md:pt-10">
+        <motion.section
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="hero-video"
+        >
+          <video id="heroVideo" ref={heroVideoRef} autoPlay muted playsInline preload="auto">
+            <source src="/WhatsApp%20Video%202026-02-21%20at%2002.50.34.mp4" type="video/mp4" />
+          </video>
+        </motion.section>
       </section>
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-14">
-        <section ref={productsRef} className="mt-12">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+      <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
+        <div className="mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
+      </section>
+
+      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+        <div className="mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-5 flex flex-wrap items-center justify-between gap-4 md:mb-7"
+          >
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-[#0E1A2B]">Produits populaires</h2>
-              <p className="mt-1 text-sm text-[#14263C]/70">Les incontournables selectionnes pour vous.</p>
+              <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">Produits populaires</h2>
+              <p className="mt-1 text-sm text-slate-600">Sélection dynamique des meilleures références.</p>
             </div>
-            <Button asChild variant="ghost" className="text-[#0E1A2B]">
+            <Button asChild variant="outline" className="rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]">
               <Link href="/shop" className="inline-flex items-center gap-2">
-                Voir tout le catalogue <ArrowRight className="h-4 w-4" />
+                Explorer la boutique <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-          </div>
+          </motion.div>
 
-          <div className="mt-6">
-            {featuredQuery.isLoading && productsQuery.isLoading ? (
-              <div className="text-sm text-[#14263C]/70">Chargement...</div>
-            ) : null}
-            {featuredQuery.isError && productsQuery.isError ? (
-              <div className="text-sm text-[#14263C]/70">API indisponible.</div>
-            ) : null}
-            {!featuredQuery.isLoading && !productsQuery.isLoading && popularItems.length === 0 ? (
-              <div className="text-sm text-[#14263C]/70">Aucun article disponible.</div>
-            ) : null}
+          {featuredQuery.isLoading && productsQuery.isLoading ? (
+            <p className="text-sm text-slate-500">Chargement des produits...</p>
+          ) : null}
+          {featuredQuery.isError && productsQuery.isError ? (
+            <p className="text-sm text-slate-500">API indisponible.</p>
+          ) : null}
+          {!featuredQuery.isLoading && !productsQuery.isLoading && popularItems.length === 0 ? (
+            <p className="text-sm text-slate-500">Aucun produit disponible.</p>
+          ) : null}
 
-            {popularItems.length > 0 ? (
-              <motion.div
-                initial="hidden"
-                animate={productsInView ? "show" : "hidden"}
-                variants={{
-                  hidden: { opacity: 0 },
-                  show: { opacity: 1, transition: { staggerChildren: 0.12 } },
-                }}
-                className="product-grid grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-              >
-                {popularItems.map((item, idx) => {
-                  const href = `/product/${item.slug}`;
-                  const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
-                  return (
-                    <motion.div
-                      key={item.id ?? item.slug ?? `popular-${idx}`}
-                      variants={fadeUp}
-                      className="glass-card product-card group relative rounded-3xl p-4 transition-all duration-300"
-                    >
-                      <div
-                        className="gold-tag absolute right-4 top-4 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0E1A2B]"
-                        style={{ backgroundImage: GOLD_GRADIENT }}
-                      >
-                        Populaire
-                      </div>
-                      {item.is_promo ? (
-                        <div className="promo-tag absolute left-4 top-4 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
-                          Promo
-                        </div>
-                      ) : null}
-                      <Link href={href} className="block">
-                        <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-white/70">
-                          {img.startsWith("/") ? (
-                            <Image
-                              src={img}
-                              alt={item.name}
-                              fill
-                              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                              className="object-contain transition-transform duration-500 group-hover:scale-110"
-                            />
-                          ) : (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={img}
-                              alt={item.images?.[0]?.alt ?? item.name}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                          )}
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="truncate text-base font-semibold text-[#0E1A2B]">{item.name}</div>
-                          <div className="text-sm text-[#14263C]/70">{formatPrice(item.price)}</div>
-                        </div>
-                      </Link>
-                      <MagneticWrap className="mt-4">
-                        <Button asChild className="gold-button w-full border border-white/40 text-[#0E1A2B] shadow-xl">
-                          <Link href={href}>Voir le produit</Link>
-                        </Button>
-                      </MagneticWrap>
-                      <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-[#0E1A2B]/10 transition-all duration-300 group-hover:ring-[#D4AF37]/40" />
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            ) : null}
-          </div>
-        </section>
-
-        <section ref={stepsRef} className="mt-16">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold text-[#0E1A2B]">Comment ca marche</h2>
-            <p className="mt-2 text-sm text-[#14263C]/70">4 etapes fluides pour une experience premium.</p>
-          </div>
-
-          <div className="relative mt-10">
-            <motion.div
-              className="steps-line absolute left-6 right-6 top-8 hidden h-px md:block"
-              initial={{ scaleX: 0 }}
-              animate={stepsInView ? { scaleX: 1 } : { scaleX: 0 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              style={{ transformOrigin: "left" }}
-            />
-            <motion.div
-              initial="hidden"
-              animate={stepsInView ? "show" : "hidden"}
-              variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.15 } } }}
-              className="steps-grid grid gap-6 md:grid-cols-4"
-            >
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                return (
-                  <motion.div
-                    key={step.title}
-                    variants={fadeUp}
-                    className="glass-card step-card group relative overflow-hidden rounded-3xl p-6 transition-all duration-300"
-                  >
-                    <div className="pointer-events-none absolute -right-4 -top-6 text-6xl font-semibold text-[#D4AF37]/18">
-                      {index + 1}
-                    </div>
-                    <div className="step-icon flex h-12 w-12 items-center justify-center rounded-2xl border border-white/40 bg-white/70 shadow-xl">
-                      <Icon className="h-6 w-6 text-[#14263C]" />
-                    </div>
-                    <div className="mt-4 text-lg font-semibold text-[#0E1A2B]">{step.title}</div>
-                    <p className="mt-2 text-sm text-[#14263C]/70">{step.description}</p>
-                    <div
-                      className="steps-line mt-4 h-1 w-10 rounded-full"
-                      style={{ backgroundImage: GOLD_GRADIENT }}
-                    />
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        </section>
-
-        <section ref={valuesRef} className="mt-16">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold text-[#0E1A2B]">Nos valeurs</h2>
-              <p className="mt-2 text-sm text-[#14263C]/70">Des garanties claires pour une confiance totale.</p>
-            </div>
-            <div className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0E1A2B]/60 md:flex">
-              <Sparkles className="h-4 w-4" />
-              Premium service
-            </div>
-          </div>
           <motion.div
-            initial="hidden"
-            animate={valuesInView ? "show" : "hidden"}
-            variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.12 } } }}
-            className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.18 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-1 gap-6 lg:grid-cols-4"
           >
-            {values.map((value) => {
-              const Icon = value.icon;
+            {popularItems.map((item, idx) => {
+              const href = `/product/${item.slug}`;
+              const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
+
               return (
-                <motion.div
-                  key={value.title}
-                  variants={fadeUp}
-                  className="glass-card value-card group relative rounded-3xl p-6 transition-all duration-300"
+                <article
+                  key={item.id ?? item.slug ?? `popular-${idx}`}
+                  className="group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/40 bg-white/70 shadow-xl">
-                    <Icon className="h-6 w-6 text-[#0E1A2B]" />
-                  </div>
-                  <div className="mt-4 text-lg font-semibold text-[#0E1A2B]">{value.title}</div>
-                  <p className="mt-2 text-sm text-[#14263C]/70">{value.description}</p>
-                  <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-[#0E1A2B]/10 transition-all duration-300 group-hover:ring-[#D4AF37]/40" />
-                </motion.div>
+                  <div className="pointer-events-none absolute" />
+                  <Link href={href} className="block">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
+                      {img.startsWith("/") ? (
+                        <Image
+                          src={img}
+                          alt={item.name}
+                          fill
+                          sizes="(min-width: 1024px) 25vw, 100vw"
+                          className="object-contain transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={img}
+                          alt={item.images?.[0]?.alt ?? item.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+                    <h3 className="mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
+                    <p className="mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
+                  </Link>
+                  <Button asChild variant="outline" className="mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]">
+                    <Link href={href}>Voir le produit</Link>
+                  </Button>
+                </article>
               );
             })}
           </motion.div>
-        </section>
+        </div>
+      </section>
 
-        <section ref={ctaRef} className="mt-16">
+      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+        <div className="mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
+        <div className="mx-auto max-w-6xl">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={ctaInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-            transition={{ duration: 0.6 }}
-            className="overflow-hidden rounded-[32px] bg-[#0E1A2B] px-6 py-10 text-white shadow-xl md:px-12 md:py-14"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-5 text-center md:mb-7"
           >
-            <div className="grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em]">
-                  <Sparkles className="h-4 w-4" />
-                  Ready to launch
-                </div>
-                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Passez a la vitesse premium.</h2>
-                <p className="mt-3 text-sm text-white/80">
-                  Une homepage lumineuse, des parcours ultra rapides, une experience high-tech qui inspire confiance.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
-                <MagneticWrap className="inline-block">
-                  <Button asChild className="gold-button relative overflow-hidden border border-white/10 text-[#0E1A2B] shadow-xl">
-                    <Link href="/shop" className="inline-flex items-center gap-2">
-                      Lancer votre commande
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </MagneticWrap>
-                <Button asChild variant="ghost" className="border border-white/30 text-white hover:bg-white/10">
-                  <Link href="/auth/login">Acces client</Link>
-                </Button>
-              </div>
-            </div>
+            <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">Pourquoi nous choisir</h2>
           </motion.div>
-        </section>
-      </div>
-    </motion.main>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {reasons.map((reason, index) => {
+              const Icon = reason.icon;
+              return (
+                <motion.article
+                  key={reason.title}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  className="rounded-[20px] border border-[#d4af37]/25 bg-[#faf8f4] p-5 shadow-[0_14px_32px_-28px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_18px_36px_-22px_rgba(212,175,55,0.55)] md:p-6"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-[0_8px_20px_-16px_rgba(212,175,55,0.65)]">
+                    <Icon className="h-5 w-5 text-[#8b6b16]" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{reason.title}</h3>
+                  <p className="mt-2 text-sm text-slate-600">{reason.description}</p>
+                </motion.article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+        <div className="mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
+        <div className="mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-6 text-center md:mb-8"
+          >
+            <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">Comment ça marche</h2>
+            <p className="mt-2 text-sm text-slate-600">Un parcours fluide en 4 étapes.</p>
+          </motion.div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <motion.article
+                  key={step.title}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ duration: 0.45, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  className="group rounded-[20px] border border-[#d4af37]/25 bg-white p-5 shadow-[0_14px_32px_-28px_rgba(212,175,55,0.42)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.58)] md:p-6"
+                >
+                  <div className="mb-3 text-xs font-semibold tracking-[0.18em] text-slate-400">ETAPE {index + 1}</div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#faf8f4] transition-all duration-400 group-hover:scale-105 group-hover:shadow-[0_12px_24px_-14px_rgba(212,175,55,0.7)]">
+                    <Icon className="h-5 w-5 text-[#8b6b16]" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{step.title}</h3>
+                  <p className="mt-2 text-sm text-slate-600">{step.description}</p>
+                </motion.article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="mx-auto max-w-6xl rounded-[28px] bg-[#111014] px-5 py-8 text-white shadow-[0_24px_50px_-40px_rgba(0,0,0,0.6)] md:px-10 md:py-14"
+        >
+          <div className="grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
+            <div>
+              <h2 className="text-balance text-[22px] font-semibold tracking-tight leading-tight md:text-3xl lg:text-4xl">
+                Prêt à passer au niveau supérieur ?
+              </h2>
+              <p className="mt-3 max-w-xl text-sm text-slate-300 sm:text-base">
+                Une expérience e-commerce premium, minimaliste et conçue pour performer.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
+              <Button
+                asChild
+                className="rounded-full border-none text-[#3f2e05] transition-all duration-400 hover:scale-[1.02] hover:shadow-[0_14px_30px_-18px_rgba(212,175,55,0.8)]"
+                style={{ backgroundImage: GOLD_GRADIENT }}
+              >
+                <Link href="/shop" className="inline-flex items-center gap-2">
+                  Voir les produits <PackageCheck className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-full border-white/30 bg-transparent text-white transition-all duration-400 hover:bg-white/10"
+              >
+                <Link href="/auth/login">Se connecter</Link>
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+    </main>
   );
 }
