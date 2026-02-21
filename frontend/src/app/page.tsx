@@ -9,8 +9,8 @@ import {
   Headset,
   Layers,
   PackageCheck,
-  ShieldCheck,
   ShoppingBag,
+  ShieldCheck,
   Truck,
   Zap,
 } from "lucide-react";
@@ -49,6 +49,49 @@ export default function Home() {
     return () => {
       video.removeEventListener("timeupdate", stopAtFourSeconds);
     };
+  }, []);
+
+  // Mobile-only scroll reveal activation on sections
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
+    const sections = Array.from(document.querySelectorAll("main section"));
+    const headings = Array.from(document.querySelectorAll("main h2"));
+    sections.forEach((el) => el.classList.add("reveal"));
+    headings.forEach((el) => el.classList.add("reveal-title"));
+
+    if (isMobile) {
+      requestAnimationFrame(() => {
+        sections.forEach((el) => el.classList.add("active"));
+        headings.forEach((el) => el.classList.add("active"));
+      });
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add("active");
+        });
+      },
+      { threshold: isMobile ? 0.05 : 0.3, rootMargin: "0px 0px -10% 0px" }
+    );
+
+    sections.forEach((el) => observer.observe(el));
+    headings.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth > 768) return;
+    const button = document.querySelector(".explore-button");
+    if (!button) return;
+    const timeoutId = window.setTimeout(() => {
+      button.classList.add("active");
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const featuredQuery = useQuery({
@@ -112,33 +155,35 @@ export default function Home() {
 
   return (
     <main className="w-full bg-white pb-14 md:pb-20">
-      <section className="w-full bg-white px-0 pb-0 pt-0 sm:px-0 md:px-12 md:pb-10 md:pt-10">
-        <motion.section
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-          className="hero-video"
-        >
-          <video id="heroVideo" ref={heroVideoRef} autoPlay muted playsInline preload="auto">
-            <source src="/WhatsApp%20Video%202026-02-21%20at%2002.50.34.mp4" type="video/mp4" />
-          </video>
-        </motion.section>
-      </section>
+      <div className="mobile-banner">
+        <section className="w-full bg-white px-0 pb-0 pt-0 sm:px-0 md:px-12 md:pb-10 md:pt-10">
+          <motion.section
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="hero-video"
+          >
+            <video id="heroVideo" ref={heroVideoRef} autoPlay muted playsInline preload="auto">
+              <source src="/WhatsApp%20Video%202026-02-21%20at%2002.50.34.mp4" type="video/mp4" />
+            </video>
+          </motion.section>
+        </section>
 
-      <section className="explore-button-mobile-shell hidden w-full">
-        <Button
-          asChild
-          variant="outline"
-          className="explore-button-mobile rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
-        >
-          <Link href="/shop" className="inline-flex items-center">
-            Explorer la boutique
-          </Link>
-        </Button>
-      </section>
+        <section className="explore-button-mobile-shell hidden w-full">
+          <Button
+            asChild
+            variant="outline"
+            className="explore-button explore-button-mobile premium-button rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
+          >
+            <Link href="/shop" className="inline-flex items-center">
+              Explorer la boutique
+            </Link>
+          </Button>
+        </section>
+      </div>
 
       <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
-        <div className="mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
+        <div className="section-divider mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
       </section>
 
       <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
@@ -189,7 +234,7 @@ export default function Home() {
               return (
                 <article
                   key={item.id ?? item.slug ?? `popular-${idx}`}
-                  className="group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
+                  className="product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
                 >
                   <div className="pointer-events-none absolute" />
                   <Link href={href} className="block">
@@ -214,7 +259,11 @@ export default function Home() {
                     <h3 className="mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
                     <p className="mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
                   </Link>
-                  <Button asChild variant="outline" className="mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="premium-button mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]"
+                  >
                     <Link href={href}>Voir le produit</Link>
                   </Button>
                 </article>
@@ -225,7 +274,7 @@ export default function Home() {
       </section>
 
       <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
-        <div className="mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
+        <div className="section-divider mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
         <div className="mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
