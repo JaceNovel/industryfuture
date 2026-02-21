@@ -674,20 +674,9 @@
     box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
   }
 
-  /* Section divider premium line */
-  .section-divider {
+  /* Hide only the hero divider line on mobile */
+  .section-divider-hero {
     display: none !important;
-  }
-
-  .section-divider::after {
-    content: "";
-    position: absolute;
-    left: -30%;
-    top: 0;
-    height: 100%;
-    width: 30%;
-    background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.6), transparent);
-    animation: dividerSlide 1.4s ease forwards;
   }
 
   .popular-section {
@@ -700,6 +689,12 @@
 
   .home-main {
     padding-bottom: 24px !important;
+  }
+
+  .why-choose-section {
+    border-top: 1px solid rgba(212, 175, 55, 0.3);
+    margin-top: 30px;
+    padding-top: 30px;
   }
 
   /* Title micro animation (mobile) */

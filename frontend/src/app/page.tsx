@@ -183,7 +183,7 @@ export default function Home() {
       </div>
 
       <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
-        <div className="section-divider mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
+        <div className="section-divider section-divider-hero mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
       </section>
 
       <section className="popular-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
@@ -273,7 +273,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="cta-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+      <section className="why-choose-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
         <div className="section-divider mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
         <div className="mx-auto max-w-6xl">
           <motion.div
