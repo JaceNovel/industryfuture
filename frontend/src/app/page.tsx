@@ -125,6 +125,18 @@ export default function Home() {
         </motion.section>
       </section>
 
+      <section className="explore-button-mobile-shell hidden w-full">
+        <Button
+          asChild
+          variant="outline"
+          className="explore-button-mobile rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
+        >
+          <Link href="/shop" className="inline-flex items-center gap-2">
+            Explorer la boutique <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </section>
+
       <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
         <div className="mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
       </section>
@@ -142,7 +154,11 @@ export default function Home() {
               <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">Produits populaires</h2>
               <p className="mt-1 text-sm text-slate-600">Sélection dynamique des meilleures références.</p>
             </div>
-            <Button asChild variant="outline" className="rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]">
+            <Button
+              asChild
+              variant="outline"
+              className="explore-button-desktop rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
+            >
               <Link href="/shop" className="inline-flex items-center gap-2">
                 Explorer la boutique <ArrowRight className="h-4 w-4" />
               </Link>

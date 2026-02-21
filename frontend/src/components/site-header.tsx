@@ -121,7 +121,7 @@ export function SiteHeader() {
   useEffect(() => {
     const updateViewport = () => {
       if (typeof window === "undefined") return;
-      setIsMobileView(window.matchMedia("(max-width: 767px)").matches);
+      setIsMobileView(window.matchMedia("(max-width: 768px)").matches);
     };
 
     updateViewport();
@@ -601,6 +601,14 @@ export function SiteHeader() {
               </div>
             ) : null}
           </div>
+
+          <Link
+            href="/shop"
+            aria-label="Rechercher"
+            className="mobile-search-icon hidden items-center rounded-md p-2 text-foreground"
+          >
+            <Search className="h-5 w-5" />
+          </Link>
 
           <Link
             href="/cart"

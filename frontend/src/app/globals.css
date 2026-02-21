@@ -215,19 +215,46 @@
 
 @media (max-width: 768px) {
   .hero-video {
-    margin-top: 5px;
-    margin-bottom: 15px;
+    margin-top: 0;
+    margin-bottom: 0;
     width: 100%;
     max-width: 100%;
     height: auto;
-    border-radius: 20px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
     transition: border-radius 200ms ease;
+    overflow: hidden;
   }
 
   .hero-video video {
     width: 100%;
     height: auto;
     object-fit: contain;
+  }
+
+  .mobile-search-icon {
+    display: inline-flex !important;
+    font-size: 20px;
+    transition: color 0.3s ease;
+  }
+
+  .mobile-search-icon:hover {
+    color: #d4af37;
+  }
+
+  .explore-button-mobile {
+    display: block !important;
+    margin: 15px 0 20px 16px;
+  }
+
+  .explore-button-mobile-shell {
+    display: block !important;
+  }
+
+  .explore-button-desktop {
+    display: none !important;
   }
 
   html,
