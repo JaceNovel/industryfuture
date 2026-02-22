@@ -287,7 +287,7 @@ export function SiteHeader() {
                 </div>
 
                 <div className="flex flex-1 flex-col overflow-hidden px-4 py-4">
-                  <div>
+                  <div className="shrink-0">
                     <div className="text-lg font-medium">Navigation</div>
                     <div className="mt-3 space-y-1">
                       <SheetClose asChild>
@@ -317,9 +317,9 @@ export function SiteHeader() {
                     </div>
                   </div>
 
-                  <div className="mt-5 min-h-0 flex-1">
-                    <div className="text-lg font-medium">Catégories</div>
-                    <div className="mt-3 max-h-[46vh] overflow-y-auto pr-1">
+                  <div className="mt-5 flex min-h-0 flex-1 flex-col">
+                    <div className="shrink-0 text-lg font-medium">Catégories</div>
+                    <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
                       <div className="space-y-1">
                         {(categoriesQuery.data ?? []).map((c) => {
                           const Icon = categoryIcon(c);
@@ -344,7 +344,7 @@ export function SiteHeader() {
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-2">
+                  <div className="mt-5 shrink-0 pt-2">
                     <div className="text-lg font-medium">{token ? "Mon compte" : "Compte"}</div>
                     {!token ? (
                       <div className="mt-3 space-y-1">

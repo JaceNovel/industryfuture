@@ -18,6 +18,12 @@ function lineTotal(price: unknown, qty: number) {
   return Number(price ?? 0) * qty;
 }
 
+function formatMoneyFCFA(v: unknown) {
+  const n = Number(v ?? 0);
+  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
+  return `${formatted} F CFA`;
+}
+
 export default function CartPage() {
   const router = useRouter();
   const qc = useQueryClient();
@@ -99,7 +105,7 @@ export default function CartPage() {
                 <div className="min-w-0">
                   <div className="truncate font-medium">{it.product?.name ?? `Produit #${it.product_id}`}</div>
                   <div className="text-sm text-slate-600">
-                    {Number(it.product?.price ?? 0).toFixed(2)} € / unité
+                    {formatMoneyFCFA(it.product?.price ?? 0)} / unité
                   </div>
                 </div>
                 <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
@@ -130,7 +136,7 @@ export default function CartPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-600">Sous-total</span>
-              <span>{subtotal.toFixed(2)} €</span>
+              <span>{formatMoneyFCFA(subtotal)}</span>
             </div>
             <Button
               className="w-full rounded-full border-none text-[#3f2e05] shadow-[0_16px_32px_-24px_rgba(212,175,55,0.85)] transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-22px_rgba(212,175,55,0.9)]"

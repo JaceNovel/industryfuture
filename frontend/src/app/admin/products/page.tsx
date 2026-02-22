@@ -22,6 +22,11 @@ export default function AdminProductsPage() {
     queryFn: () => apiGet<ProductsResponse>("/api/admin/products"),
   });
 
+  function formatMoneyFCFA(v: unknown) {
+    const n = Number(v ?? 0);
+    return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0)} F CFA`;
+  }
+
   const updatePromo = useMutation({
     mutationFn: ({ id, value }: { id: number; value: boolean }) =>
       apiPatch<Product>(`/api/admin/products/${id}`, { is_promo: value }),
@@ -102,7 +107,7 @@ export default function AdminProductsPage() {
                   <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell>{p.categories?.[0]?.name ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{p.slug}</TableCell>
-                  <TableCell>{Number(p.price ?? 0).toFixed(2)} €</TableCell>
+                  <TableCell>{formatMoneyFCFA(p.price ?? 0)}</TableCell>
                   <TableCell>
                     {typeof p.id === "number" ? (
                       <input

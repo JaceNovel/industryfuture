@@ -22,7 +22,8 @@ import { useEffect, useRef } from "react";
 
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
-  return `${n.toFixed(2)} €`;
+  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
+  return `${formatted} F CFA`;
 }
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
@@ -225,7 +226,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-1 gap-6 lg:grid-cols-4"
+            className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
           >
             {popularItems.map((item, idx) => {
               const href = `/product/${item.slug}`;
@@ -252,7 +253,7 @@ export default function Home() {
                         <img
                           src={img}
                           alt={item.images?.[0]?.alt ?? item.name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                         />
                       )}
                     </div>

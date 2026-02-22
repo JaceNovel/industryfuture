@@ -16,6 +16,11 @@ type OrdersResponse = { data: Array<Order & { user?: { email: string } }> };
 export default function AdminOrdersPage() {
   const qc = useQueryClient();
 
+  function formatMoneyFCFA(v: unknown) {
+    const n = Number(v ?? 0);
+    return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0)} F CFA`;
+  }
+
   const ordersQuery = useQuery({
     queryKey: ["admin-orders"],
     queryFn: () => apiGet<OrdersResponse>("/api/admin/orders"),
@@ -77,7 +82,7 @@ export default function AdminOrdersPage() {
                       <option value="SUR_COMMANDE">SUR_COMMANDE</option>
                     </select>
                   </TableCell>
-                  <TableCell>{Number(o.total ?? 0).toFixed(2)} €</TableCell>
+                  <TableCell>{formatMoneyFCFA(o.total ?? 0)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button variant="secondary" size="sm" onClick={() => updateOrder.mutate({ id: o.id, status: o.status })}>
