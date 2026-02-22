@@ -28,7 +28,8 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
-  return `${n.toFixed(2)} €`;
+  const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
+  return `${formatted} F CFA`;
 }
 
 export default function ShopClient() {
@@ -100,7 +101,7 @@ export default function ShopClient() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label>Min €</Label>
+          <Label>Min FCFA</Label>
           <Input
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
@@ -109,7 +110,7 @@ export default function ShopClient() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Max €</Label>
+          <Label>Max FCFA</Label>
           <Input
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}

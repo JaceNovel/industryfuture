@@ -25,6 +25,7 @@ import {
   Home,
   Megaphone,
   Menu,
+  LogOut,
   Search,
   Shirt,
   ShoppingCart,
@@ -328,7 +329,9 @@ export function SiteHeader() {
                                 href={`/shop?category=${encodeURIComponent(c.slug)}`}
                                 className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
                               >
-                                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background">
+                                  <Icon className="h-5 w-5 text-muted-foreground" />
+                                </span>
                                 <span className="truncate text-base text-foreground/90">{c.name}</span>
                               </Link>
                             </SheetClose>
@@ -342,7 +345,7 @@ export function SiteHeader() {
                   </div>
 
                   <div className="mt-5 pt-2">
-                    <div className="text-lg font-medium">Compte</div>
+                    <div className="text-lg font-medium">{token ? "Mon compte" : "Compte"}</div>
                     {!token ? (
                       <div className="mt-3 space-y-1">
                         <SheetClose asChild>
@@ -367,9 +370,12 @@ export function SiteHeader() {
                     ) : (
                       <div className="mt-3 space-y-1">
                         <SheetClose asChild>
-                          <Link href="/account" className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30">
-                            <User className="h-5 w-5 text-muted-foreground" />
-                            <span className="text-base">Mon profil</span>
+                          <Link
+                            href="/tracking"
+                            className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                          >
+                            <Truck className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-base">Suivi de commande</span>
                           </Link>
                         </SheetClose>
                         <SheetClose asChild>
@@ -381,38 +387,60 @@ export function SiteHeader() {
                             <span className="text-base">Mes commandes</span>
                           </Link>
                         </SheetClose>
+
+                        <div className="my-2 h-px bg-border" />
+
+                        <SheetClose asChild>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left text-destructive hover:bg-muted/30"
+                            onClick={() => {
+                              clearAuthCookies();
+                              setToken(null);
+                              setRole(null);
+                              setName(null);
+                              setEmail(null);
+                              setMobileMenuOpen(false);
+                              router.push("/");
+                            }}
+                          >
+                            <LogOut className="h-5 w-5" />
+                            <span className="text-base">Déconnexion</span>
+                          </button>
+                        </SheetClose>
                       </div>
                     )}
-
-                    <div className="mt-4 flex items-center gap-3 px-2">
-                      <a
-                        href={FACEBOOK_URL}
-                        aria-label="Facebook"
-                        className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <FacebookLogo className="h-5 w-5" />
-                      </a>
-                      <a
-                        href={TIKTOK_URL}
-                        aria-label="TikTok"
-                        className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <TikTokLogo className="h-5 w-5" />
-                      </a>
-                      <a
-                        href={INSTAGRAM_URL}
-                        aria-label="Instagram"
-                        className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <InstagramLogo className="h-5 w-5" />
-                      </a>
-                    </div>
+                    {!token ? (
+                      <div className="mt-4 flex items-center gap-3 px-2">
+                        <a
+                          href={FACEBOOK_URL}
+                          aria-label="Facebook"
+                          className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <FacebookLogo className="h-5 w-5" />
+                        </a>
+                        <a
+                          href={TIKTOK_URL}
+                          aria-label="TikTok"
+                          className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <TikTokLogo className="h-5 w-5" />
+                        </a>
+                        <a
+                          href={INSTAGRAM_URL}
+                          aria-label="Instagram"
+                          className="inline-flex items-center justify-center rounded-md border p-2 text-foreground hover:bg-muted/30"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <InstagramLogo className="h-5 w-5" />
+                        </a>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>

@@ -29,12 +29,12 @@ export default function OrderDetailsPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 md:px-6">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Commande #{id}</h1>
           {order ? <Badge variant="secondary" className="mt-2">{order.status}</Badge> : null}
         </div>
-        <Button asChild variant="secondary">
+        <Button asChild variant="secondary" className="w-full sm:w-auto">
           <Link href="/account/orders">Retour</Link>
         </Button>
       </div>
@@ -53,12 +53,12 @@ export default function OrderDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {(order.items ?? []).map((it) => (
-              <div key={it.id} className="flex items-start justify-between gap-4 rounded-lg border bg-background px-4 py-3">
+              <div key={it.id} className="flex flex-col gap-2 rounded-lg border bg-background px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
                   <div className="font-medium">{it.name}</div>
                   <div className="text-sm text-muted-foreground">Quantité: {it.qty}</div>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <div className="font-medium">{formatMoneyFCFA(it.price)}</div>
                   <div className="text-sm text-muted-foreground">Total: {formatMoneyFCFA(it.total)}</div>
                 </div>
