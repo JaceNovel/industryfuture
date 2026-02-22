@@ -64,19 +64,17 @@ export default function OrdersPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Mes commandes</h1>
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-4xl">Mes commandes</h1>
 
       <div className="mt-6">
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-          <div className="overflow-x-auto pb-1">
-            <TabsList className="bg-background">
-              <TabsTrigger value="all">Toutes</TabsTrigger>
-              <TabsTrigger value="pending">En attente</TabsTrigger>
-              <TabsTrigger value="preparing">En préparation</TabsTrigger>
-              <TabsTrigger value="shipped">Expédiées</TabsTrigger>
-              <TabsTrigger value="delivered">Livrées</TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="flex flex-wrap gap-2 bg-background">
+            <TabsTrigger value="all">Toutes</TabsTrigger>
+            <TabsTrigger value="pending">En attente</TabsTrigger>
+            <TabsTrigger value="preparing">En préparation</TabsTrigger>
+            <TabsTrigger value="shipped">Expédiées</TabsTrigger>
+            <TabsTrigger value="delivered">Livrées</TabsTrigger>
+          </TabsList>
         </Tabs>
       </div>
 
@@ -99,7 +97,7 @@ export default function OrdersPage() {
 
             return (
               <Card key={o.id} className="overflow-hidden bg-background">
-                <CardHeader className="flex flex-col gap-3 bg-muted/10 sm:flex-row sm:items-start sm:justify-between">
+                <CardHeader className="flex flex-row items-start justify-between bg-muted/10">
                   <div>
                     <CardTitle className="text-base font-semibold">Commande #{o.id}</CardTitle>
                     <div className="mt-1 text-sm text-muted-foreground">
@@ -114,7 +112,7 @@ export default function OrdersPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  <div className="grid gap-4 p-4 sm:p-6 md:grid-cols-[80px_1fr]">
+                  <div className="grid gap-4 p-6 md:grid-cols-[80px_1fr]">
                     <div className="h-20 w-20 overflow-hidden rounded-md bg-muted/30">
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -133,27 +131,27 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <div className="text-base font-semibold sm:text-lg">{item?.name ?? `Commande #${o.id}`}</div>
+                      <div className="text-lg font-semibold">{item?.name ?? `Commande #${o.id}`}</div>
                       <div className="text-sm text-muted-foreground">Quantité: {item?.qty ?? 1}</div>
-                      <div className="text-base font-semibold sm:text-lg">{formatMoneyFCFA(item?.price ?? o.total)}</div>
+                      <div className="text-lg font-semibold">{formatMoneyFCFA(item?.price ?? o.total)}</div>
                       {o.items && o.items.length > 1 ? (
                         <div className="text-sm text-muted-foreground">+ {o.items.length - 1} autre(s) article(s)</div>
                       ) : null}
                     </div>
                   </div>
 
-                  <div className="border-t bg-background px-4 py-4 sm:px-6">
+                  <div className="border-t bg-background px-6 py-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                       <div className="space-y-1">
                         <div className="text-base font-semibold">Total: {formatMoneyFCFA(o.total)}</div>
                         <div className="text-sm text-muted-foreground">Numéro de suivi: {tracking ?? "—"}</div>
                       </div>
 
-                      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-                        <Button variant="outline" disabled={!tracking} className="w-full sm:w-auto">
+                      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+                        <Button className="w-full sm:w-auto" variant="outline" disabled={!tracking}>
                           Suivre
                         </Button>
-                        <Button asChild variant="destructive" className="w-full sm:w-auto">
+                        <Button asChild className="w-full sm:w-auto" variant="destructive">
                           <Link href={`/account/orders/${o.id}`}>Détails</Link>
                         </Button>
                       </div>

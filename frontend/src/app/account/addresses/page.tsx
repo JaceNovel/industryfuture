@@ -122,10 +122,10 @@ export default function AddressesPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 md:px-6">
       <div className="relative">
-        <h1 className="text-center text-4xl font-semibold tracking-tight">Mes adresses</h1>
+        <h1 className="text-center text-2xl font-semibold tracking-tight sm:text-4xl">Mes adresses</h1>
 
-        <div className="mt-6 flex items-center justify-end">
-          <Button variant="destructive" className="gap-2" onClick={openCreate}>
+        <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <Button variant="destructive" className="w-full gap-2 sm:w-auto" onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Ajouter une adresse
           </Button>
@@ -206,7 +206,7 @@ export default function AddressesPage() {
 
           <div className="grid gap-4">
             <div className="flex items-center justify-end">
-              <Button variant="outline" className="gap-2" onClick={fillFromPosition}>
+              <Button variant="outline" className="w-full gap-2 sm:w-auto" onClick={fillFromPosition}>
                 <Navigation className="h-4 w-4" />
                 Utiliser ma position
               </Button>

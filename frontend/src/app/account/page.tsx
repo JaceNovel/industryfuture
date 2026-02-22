@@ -30,21 +30,21 @@ export default function AccountPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
-      <Card className="bg-background">
+      <Card className="rounded-3xl border border-primary/15 bg-card/60 shadow-[0_18px_50px_-45px_theme(colors.primary/0.55)]">
         <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-lg font-semibold">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-primary/5 text-lg font-semibold text-primary shadow-[0_10px_30px_-24px_theme(colors.primary/0.6)]">
               {avatar}
             </div>
             <div>
-              <div className="text-2xl font-semibold tracking-tight">Mon compte</div>
+              <div className="text-2xl font-semibold tracking-tight text-primary">Mon compte</div>
               <div className="text-sm text-muted-foreground">{email ?? ""}</div>
             </div>
           </div>
 
           <Button
             variant="outline"
-            className="gap-2"
+            className="w-full gap-2 rounded-full border-primary/20 bg-background/60 hover:bg-muted/20 sm:w-auto"
             onClick={() => {
               clearAuthCookies();
               router.push("/");
@@ -57,7 +57,7 @@ export default function AccountPage() {
       </Card>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <Card className="bg-background">
+        <Card className="rounded-3xl border border-primary/15 bg-card/60">
           <CardHeader>
             <CardTitle className="text-lg">Informations personnelles</CardTitle>
           </CardHeader>
@@ -74,25 +74,21 @@ export default function AccountPage() {
               <div className="text-sm font-medium">Téléphone</div>
               <div className="text-base">{phone ?? "—"}</div>
             </div>
-
-            <Button variant="destructive" className="mt-2">
-              Modifier
-            </Button>
           </CardContent>
         </Card>
 
-        <Card className="bg-background">
+        <Card className="rounded-3xl border border-primary/15 bg-card/60">
           <CardHeader>
             <CardTitle className="text-lg">Raccourcis</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button asChild variant="outline" className="w-full justify-start gap-3">
+            <Button asChild variant="outline" className="w-full justify-start gap-3 rounded-2xl border-primary/20 bg-background/60 hover:bg-muted/20">
               <Link href="/account/orders">
                 <Package className="h-4 w-4" />
                 Mes commandes
               </Link>
             </Button>
-            <Button asChild variant="outline" className="w-full justify-start gap-3">
+            <Button asChild variant="outline" className="w-full justify-start gap-3 rounded-2xl border-primary/20 bg-background/60 hover:bg-muted/20">
               <Link href="/account/addresses">
                 <MapPin className="h-4 w-4" />
                 Mes adresses

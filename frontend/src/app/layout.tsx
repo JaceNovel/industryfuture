@@ -44,7 +44,7 @@ export default function RootLayout({
         <Providers>
           <div className="flex min-h-dvh flex-col">
             <SiteHeader />
-            <div className="flex-1 pb-[40vh]">{children}</div>
+            <div className="flex-1 pb-[40vh] page-enter">{children}</div>
             <SiteFaq />
           </div>
         </Providers>

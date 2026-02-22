@@ -231,7 +231,7 @@ export default function ProductPage() {
           <div className="grid gap-6 md:gap-10 lg:grid-cols-[1.25fr_1fr]">
           <Card className="bg-muted/20">
             <CardContent className="p-0">
-              <div className="relative min-h-[320px] overflow-hidden rounded-xl border bg-muted/20 sm:min-h-[420px] lg:min-h-[520px]">
+              <div className="relative min-h-[240px] overflow-hidden rounded-xl border bg-muted/20 sm:min-h-[420px] lg:min-h-[520px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imgSrc}
@@ -274,8 +274,8 @@ export default function ProductPage() {
 
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">{product.name}</h1>
-              <div className="mt-3 text-2xl font-semibold text-destructive sm:text-3xl">{formatPriceCFA(displayPrice)}</div>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">{product.name}</h1>
+              <div className="mt-3 text-xl font-semibold text-destructive sm:text-3xl">{formatPriceCFA(displayPrice)}</div>
               {hasTransportPrices ? (
                 <div className="mt-3 space-y-2">
                   <div className="text-sm font-medium text-foreground">Mode de livraison</div>
