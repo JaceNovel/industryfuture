@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'payments' => [
+        'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost:8000')),
+    ],
+
+    'fedapay' => [
+        'secret_key' => env('FEDAPAY_SECRET_KEY'),
+        // Expected values for the PHP SDK: 'sandbox' or 'production'
+        'environment' => env('FEDAPAY_ENV', 'sandbox'),
+        // Webhook endpoint secret (starts with whsec_...)
+        'webhook_secret' => env('FEDAPAY_WEBHOOK_SECRET'),
+        // Signature timestamp tolerance (seconds)
+        'webhook_tolerance' => (int) env('FEDAPAY_WEBHOOK_TOLERANCE', 300),
+    ],
+
 ];

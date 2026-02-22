@@ -15,6 +15,11 @@ import { Check, ShoppingCart, Truck } from "lucide-react";
 
 const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
+type CheckoutResponse = {
+  order: Order;
+  payment_url?: string;
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
@@ -27,7 +32,7 @@ export default function CheckoutPage() {
 
   const checkout = useMutation({
     mutationFn: () =>
-      apiPost<Order>("/api/checkout", {
+      apiPost<CheckoutResponse>("/api/checkout", {
         shipping_address: {
           full_name: fullName,
           line1,
@@ -38,8 +43,13 @@ export default function CheckoutPage() {
           phone: phone || null,
         },
       }),
-    onSuccess: (order) => {
-      router.push(`/account?order=${order.id}`);
+    onSuccess: (res) => {
+      const paymentUrl = (res.payment_url ?? "").trim();
+      if (paymentUrl) {
+        window.location.assign(paymentUrl);
+        return;
+      }
+      router.push(`/account/orders/${res.order.id}`);
     },
   });
 

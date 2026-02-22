@@ -54,6 +54,7 @@ export type Order = {
   total: number | string;
   created_at?: string;
   metadata?: Record<string, unknown> | null;
+  payments?: Payment[];
   items?: Array<{
     id: number;
     name: string;
@@ -62,6 +63,18 @@ export type Order = {
     total: number | string;
     product?: Product | null;
   }>;
+};
+
+export type Payment = {
+  id?: number;
+  order_id: number;
+  provider: string;
+  status: string;
+  amount: number | string;
+  metadata?: Record<string, unknown> | null;
+  paid_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type Address = {

@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use Illuminate\Support\Str;
+use App\Services\Payments\FedapayGateway;
 
 class CheckoutController extends Controller
 {
@@ -35,7 +36,7 @@ class CheckoutController extends Controller
             return response()->json(['message' => 'Cart is empty'], 422);
         }
 
-        return DB::transaction(function () use ($validated, $user, $cart) {
+        $result = DB::transaction(function () use ($validated, $user, $cart) {
             $addressId = null;
             if (!empty($validated['shipping_address'])) {
                 $addr = $validated['shipping_address'];
@@ -98,9 +99,9 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            Payment::create([
+            $payment = Payment::create([
                 'order_id' => $order->id,
-                'provider' => 'manual',
+                'provider' => 'gateway',
                 'status' => 'pending',
                 'amount' => $order->total,
             ]);
@@ -108,7 +109,68 @@ class CheckoutController extends Controller
             $cart->items()->delete();
 
             $order->load(['items', 'payments', 'shippingAddress']);
-            return response()->json($order, 201);
+            return [$order, $payment];
         });
+
+        /** @var array{0: \App\Models\Order, 1: \App\Models\Payment} $result */
+        [$order, $payment] = $result;
+
+        $gateway = app(FedapayGateway::class);
+        if (!$gateway->isConfigured()) {
+            return response()->json([
+                'message' => 'Payment gateway is not configured.',
+            ], 500);
+        }
+
+        $fullName = (string) ($validated['shipping_address']['full_name'] ?? $user->name ?? '');
+        $fullName = trim($fullName);
+        $parts = preg_split('/\s+/', $fullName, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $firstname = $parts[0] ?? 'Client';
+        $lastname = count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '—';
+
+        $phone = (string) ($validated['shipping_address']['phone'] ?? '');
+        $country = (string) ($validated['shipping_address']['country'] ?? 'BJ');
+
+        $customer = [
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'email' => (string) $user->email,
+        ];
+        if (trim($phone) !== '') {
+            $customer['phone_number'] = [
+                'number' => $phone,
+                'country' => $country,
+            ];
+        }
+
+        try {
+            $link = $gateway->createPaymentLink($order, $payment, $customer);
+
+            $payment->provider = 'gateway';
+            $payment->metadata = array_merge((array) ($payment->metadata ?? []), [
+                'fedapay_transaction_id' => $link['transaction_id'],
+                'fedapay_reference' => $link['reference'],
+                'merchant_reference' => $link['merchant_reference'],
+                'payment_url' => $link['payment_url'],
+            ]);
+            $payment->save();
+        } catch (\Throwable $e) {
+            $payment->status = 'failed';
+            $payment->metadata = array_merge((array) ($payment->metadata ?? []), [
+                'error' => $e->getMessage(),
+            ]);
+            $payment->save();
+
+            return response()->json([
+                'message' => 'Unable to initialize payment.',
+            ], 502);
+        }
+
+        $order->load(['items', 'payments', 'shippingAddress']);
+
+        return response()->json([
+            'order' => $order,
+            'payment_url' => (string) ($payment->metadata['payment_url'] ?? ''),
+        ], 201);
     }
 }

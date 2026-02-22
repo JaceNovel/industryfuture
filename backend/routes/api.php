@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PaymentLinkController;
+use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\ReverseGeocodeController;
@@ -25,6 +27,9 @@ use App\Http\Controllers\Api\Admin\WithdrawalRequestController as AdminWithdrawa
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 
 Route::get('/health', HealthController::class);
+
+// Payment webhooks (no auth)
+Route::post('/webhooks/payments', [PaymentWebhookController::class, 'handle']);
 
 Route::get('/categories', [CategoryController::class, 'index']);
 
@@ -59,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart', [CartController::class, 'remove']);
 
     Route::post('/checkout', [CheckoutController::class, 'store']);
+
+    Route::post('/orders/{order}/pay', [PaymentLinkController::class, 'store']);
 
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
