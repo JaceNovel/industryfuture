@@ -95,6 +95,39 @@ export default function Home() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth > 768) return;
+
+    const cards = document.querySelectorAll(".popular-section .product-card") as NodeListOf<HTMLElement>;
+    if (!cards.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const target = entry.target as HTMLElement;
+          if (entry.isIntersecting) {
+            target.style.transform = "scale(1)";
+            target.style.opacity = "1";
+          } else {
+            target.style.transform = "scale(0.92)";
+            target.style.opacity = "0.6";
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
+    cards.forEach((card) => {
+      card.style.transition = "transform 0.4s ease, opacity 0.4s ease";
+      card.style.transform = "scale(0.92)";
+      card.style.opacity = "0.6";
+      observer.observe(card);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const featuredQuery = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=featured"),
@@ -226,7 +259,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
+            className="popular-products-container grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
           >
             {popularItems.map((item, idx) => {
               const href = `/product/${item.slug}`;

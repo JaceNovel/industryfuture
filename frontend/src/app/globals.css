@@ -683,6 +683,30 @@
     padding-top: 20px !important;
   }
 
+  .popular-products-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 16px;
+    padding: 10px 16px 20px 16px;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-inline: 16px;
+  }
+
+  .popular-products-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .popular-products-container .product-card {
+    flex: 0 0 80%;
+    scroll-snap-align: center;
+    border-radius: 18px;
+  }
+
+  .product-card:hover {
+    transform: scale(1.03);
+  }
+
   .cta-section {
     padding-bottom: 20px !important;
   }
