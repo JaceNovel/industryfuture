@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\Admin\ProductImageController as AdminProductImageController;
+use App\Http\Controllers\Api\Admin\ProductImportController as AdminProductImportController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\GroupedOfferController as AdminGroupedOfferController;
 use App\Http\Controllers\Api\Admin\WithdrawalRequestController as AdminWithdrawalRequestController;
@@ -65,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('admin')->middleware('role:admin')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
         Route::apiResource('products', AdminProductController::class);
+        Route::post('import/products', [AdminProductImportController::class, 'store']);
         Route::apiResource('coupons', AdminCouponController::class);
         Route::apiResource('grouped-offers', AdminGroupedOfferController::class);
         Route::apiResource('users', AdminUserController::class)->only(['index', 'store', 'show', 'destroy']);
