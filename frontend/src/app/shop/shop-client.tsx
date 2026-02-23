@@ -283,7 +283,7 @@ export default function ShopClient() {
             <div className="text-sm text-destructive">{(productsQuery.error as Error).message}</div>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="products-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {(productsQuery.data?.data ?? []).map((p, idx) => {
               const img = p.images?.[0]?.url;
               const href = `/product/${p.slug}`;
@@ -294,12 +294,12 @@ export default function ShopClient() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.25 }}
                   transition={{ duration: 0.45, delay: Math.min(idx, 8) * 0.03, ease: [0.22, 1, 0.36, 1] }}
-                  className="group relative overflow-hidden rounded-[20px] border border-[#d4af37]/22 bg-white shadow-[0_18px_42px_-34px_rgba(212,175,55,0.55)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-32px_rgba(212,175,55,0.65)]"
+                  className="product-card group relative overflow-hidden rounded-[20px] border border-[#d4af37]/22 bg-white shadow-[0_18px_42px_-34px_rgba(212,175,55,0.55)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-32px_rgba(212,175,55,0.65)]"
                 >
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#f6e27a]/8 via-transparent to-[#b8860b]/6 opacity-70" />
 
                   <Link href={href} className="relative block">
-                    <div className="aspect-[4/3] overflow-hidden rounded-t-[20px] bg-[#faf8f4]">
+                    <div className="product-media aspect-[4/3] overflow-hidden rounded-t-[20px] bg-[#faf8f4]">
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -321,11 +321,11 @@ export default function ShopClient() {
                     </div>
                   </Link>
 
-                  <div className="relative space-y-2 p-4">
+                  <div className="product-content relative space-y-2 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-base font-semibold text-slate-950">{p.name}</div>
-                        <div className="mt-0.5 text-sm font-medium text-[#8b6b16]">{formatPrice(p.price)}</div>
+                        <div className="product-title truncate text-base font-semibold text-slate-950">{p.name}</div>
+                        <div className="product-price mt-0.5 text-sm font-medium text-[#8b6b16]">{formatPrice(p.price)}</div>
                       </div>
                       {p.tag_delivery ? (
                         <Badge

@@ -259,7 +259,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="popular-products-container grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
+            className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
           >
             {popularItems.map((item, idx) => {
               const href = `/product/${item.slug}`;
@@ -268,11 +268,11 @@ export default function Home() {
               return (
                 <article
                   key={item.id ?? item.slug ?? `popular-${idx}`}
-                  className="product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
+                  className="product-card homepage-product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
                 >
                   <div className="pointer-events-none absolute" />
                   <Link href={href} className="block">
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
+                    <div className="homepage-product-media relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
                       {img.startsWith("/") ? (
                         <Image
                           src={img}
@@ -290,8 +290,8 @@ export default function Home() {
                         />
                       )}
                     </div>
-                    <h3 className="mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
-                    <p className="mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
+                    <h3 className="product-title mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
+                    <p className="product-price mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
                   </Link>
                   <Button
                     asChild

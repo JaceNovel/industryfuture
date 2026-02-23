@@ -66,7 +66,7 @@ export default function PromotionsPage() {
 
         <div className="mt-4 h-px w-full" style={{ backgroundImage: GOLD_GRADIENT }} />
 
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="products-grid mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p, idx) => {
             const img = p.images?.[0]?.url;
             const href = `/product/${p.slug}`;
@@ -78,12 +78,12 @@ export default function PromotionsPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.45, delay: Math.min(idx, 8) * 0.03, ease: [0.22, 1, 0.36, 1] }}
-                className="group relative overflow-hidden rounded-[20px] border border-[#d4af37]/22 bg-white shadow-[0_18px_42px_-34px_rgba(212,175,55,0.55)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-32px_rgba(212,175,55,0.65)]"
+                className="product-card group relative overflow-hidden rounded-[20px] border border-[#d4af37]/22 bg-white shadow-[0_18px_42px_-34px_rgba(212,175,55,0.55)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_-32px_rgba(212,175,55,0.65)]"
               >
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#f6e27a]/8 via-transparent to-[#b8860b]/6 opacity-70" />
 
                 <Link href={href} className="relative block">
-                  <div className="aspect-[4/3] overflow-hidden rounded-t-[20px] bg-[#faf8f4]">
+                  <div className="product-media aspect-[4/3] overflow-hidden rounded-t-[20px] bg-[#faf8f4]">
                     {img ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -104,9 +104,9 @@ export default function PromotionsPage() {
                     )}
                   </div>
 
-                  <div className="relative space-y-2 p-4">
-                    <div className="truncate text-base font-semibold text-slate-950">{p.name}</div>
-                    <div className="text-sm font-medium text-[#8b6b16]">{formatPrice(p.price)}</div>
+                  <div className="product-content relative space-y-2 p-4">
+                    <div className="product-title truncate text-base font-semibold text-slate-950">{p.name}</div>
+                    <div className="product-price text-sm font-medium text-[#8b6b16]">{formatPrice(p.price)}</div>
                     <div className="mt-2 inline-flex items-center justify-center rounded-full border border-[#d4af37]/25 bg-white/60 px-3 py-1 text-xs font-medium text-[#694d08] shadow-[0_10px_20px_-16px_rgba(212,175,55,0.6)]">
                       Voir le produit
                     </div>

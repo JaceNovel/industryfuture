@@ -576,7 +576,7 @@ export default function ProductPage() {
               ) : null}
             </div>
 
-            <div className="mt-4 -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:mt-6 sm:grid sm:overflow-visible sm:px-0 sm:pb-0 sm:[scrollbar-width:auto] sm:snap-none sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="products-grid mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-6 lg:grid-cols-4">
               {similarQuery.isLoading ? (
                 <div className="text-sm text-muted-foreground">Chargement…</div>
               ) : similarProducts.length ? (
@@ -586,9 +586,9 @@ export default function ProductPage() {
                     <Link
                       key={p.id ?? p.slug}
                       href={`/product/${p.slug}`}
-                      className="group min-w-[260px] snap-start rounded-xl border bg-background hover:bg-muted/10 sm:min-w-0"
+                      className="product-card group overflow-hidden rounded-xl border bg-background hover:bg-muted/10"
                     >
-                      <div className="aspect-[4/5] overflow-hidden rounded-t-xl bg-muted/20">
+                      <div className="product-media aspect-[4/5] overflow-hidden rounded-t-xl bg-muted/20">
                         {img ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -611,10 +611,10 @@ export default function ProductPage() {
                           </div>
                         )}
                       </div>
-                      <div className="p-4 sm:p-5">
-                        <div className="text-base font-medium text-foreground">{p.name}</div>
+                      <div className="product-content p-4 sm:p-5">
+                        <div className="product-title text-base font-medium text-foreground">{p.name}</div>
                         <div className="mt-4 flex items-end justify-between gap-3">
-                          <div className="text-lg font-semibold text-destructive">{formatPriceCFA(p.price)}</div>
+                          <div className="product-price text-lg font-semibold text-destructive">{formatPriceCFA(p.price)}</div>
                           <button
                             type="button"
                             aria-label="Ajouter au panier"

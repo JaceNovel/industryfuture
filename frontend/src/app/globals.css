@@ -691,6 +691,10 @@
     padding: 10px 16px 20px 16px;
     -webkit-overflow-scrolling: touch;
     scroll-padding-inline: 16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+    overscroll-behavior-x: contain;
   }
 
   .popular-products-container::-webkit-scrollbar {
@@ -700,7 +704,31 @@
   .popular-products-container .product-card {
     flex: 0 0 80%;
     scroll-snap-align: center;
+    scroll-snap-stop: always;
     border-radius: 18px;
+  }
+
+  /* Compact mobile product grid (non-home pages) */
+  .products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .products-grid .product-content {
+    padding: 12px;
+  }
+
+  .products-grid .product-media {
+    aspect-ratio: 1 / 1;
+  }
+
+  .products-grid .product-title {
+    font-size: 0.92rem;
+    line-height: 1.2;
+  }
+
+  .products-grid .product-price {
+    font-size: 0.82rem;
   }
 
   .product-card:hover {
