@@ -160,6 +160,13 @@ class CheckoutController extends Controller
             ]);
             $payment->save();
         } catch (\Throwable $e) {
+            logger()->error('Checkout payment initialization failed', [
+                'user_id' => $user->id ?? null,
+                'order_id' => $order->id ?? null,
+                'payment_id' => $payment->id ?? null,
+                'message' => $e->getMessage(),
+            ]);
+
             // Don't create an unpaid order if the payment can't be initialized.
             // Keep the cart intact so the user can retry.
             DB::transaction(function () use ($order, $addressId) {
@@ -169,9 +176,12 @@ class CheckoutController extends Controller
                 }
             });
 
-            return response()->json([
-                'message' => 'Unable to initialize payment.',
-            ], 502);
+            $payload = ['message' => 'Unable to initialize payment.'];
+            if (config('app.debug')) {
+                $payload['details'] = $e->getMessage();
+            }
+
+            return response()->json($payload, 502);
         }
 
         // Payment link created successfully: clear the cart.
