@@ -27,7 +27,7 @@ export default function CheckoutPage() {
   const [line2, setLine2] = useState("");
   const [city, setCity] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [country, setCountry] = useState("FR");
+  const [country, setCountry] = useState("BJ");
   const [phone, setPhone] = useState("");
 
   const checkout = useMutation({
@@ -159,7 +159,8 @@ export default function CheckoutPage() {
               <Label>Pays</Label>
               <Input
                 value={country}
-                onChange={(e) => setCountry(e.target.value)}
+                maxLength={2}
+                onChange={(e) => setCountry(e.target.value.toUpperCase())}
                 className="h-11 rounded-full border-[#d4af37]/22 bg-white/70 px-4 shadow-[0_12px_24px_-20px_rgba(212,175,55,0.55)] focus-visible:ring-[#d4af37]/20"
               />
             </div>

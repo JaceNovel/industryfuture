@@ -40,6 +40,10 @@ class CheckoutController extends Controller
             $addressId = null;
             if (!empty($validated['shipping_address'])) {
                 $addr = $validated['shipping_address'];
+                $country = strtoupper((string) ($addr['country'] ?? 'BJ'));
+                if (strlen($country) > 2) {
+                    $country = substr($country, 0, 2);
+                }
                 $address = Address::create([
                     'user_id' => $user->id,
                     'type' => 'shipping',
@@ -48,7 +52,7 @@ class CheckoutController extends Controller
                     'line2' => $addr['line2'] ?? null,
                     'city' => $addr['city'],
                     'postal_code' => $addr['postal_code'],
-                    'country' => $addr['country'] ?? 'FR',
+                    'country' => $country ?: 'BJ',
                     'phone' => $addr['phone'] ?? null,
                     'is_default' => false,
                 ]);
@@ -106,14 +110,12 @@ class CheckoutController extends Controller
                 'amount' => $order->total,
             ]);
 
-            $cart->items()->delete();
-
             $order->load(['items', 'payments', 'shippingAddress']);
-            return [$order, $payment];
+            return [$order, $payment, $addressId];
         });
 
-        /** @var array{0: \App\Models\Order, 1: \App\Models\Payment} $result */
-        [$order, $payment] = $result;
+        /** @var array{0: \App\Models\Order, 1: \App\Models\Payment, 2: int|null} $result */
+        [$order, $payment, $addressId] = $result;
 
         $gateway = app(FedapayGateway::class);
         if (!$gateway->isConfigured()) {
@@ -129,7 +131,10 @@ class CheckoutController extends Controller
         $lastname = count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '—';
 
         $phone = (string) ($validated['shipping_address']['phone'] ?? '');
-        $country = (string) ($validated['shipping_address']['country'] ?? 'BJ');
+        $country = strtoupper((string) ($validated['shipping_address']['country'] ?? 'BJ'));
+        if (strlen($country) > 2) {
+            $country = substr($country, 0, 2);
+        }
 
         $customer = [
             'firstname' => $firstname,
@@ -155,16 +160,22 @@ class CheckoutController extends Controller
             ]);
             $payment->save();
         } catch (\Throwable $e) {
-            $payment->status = 'failed';
-            $payment->metadata = array_merge((array) ($payment->metadata ?? []), [
-                'error' => $e->getMessage(),
-            ]);
-            $payment->save();
+            // Don't create an unpaid order if the payment can't be initialized.
+            // Keep the cart intact so the user can retry.
+            DB::transaction(function () use ($order, $addressId) {
+                $order->delete();
+                if ($addressId) {
+                    Address::query()->where('id', $addressId)->delete();
+                }
+            });
 
             return response()->json([
                 'message' => 'Unable to initialize payment.',
             ], 502);
         }
+
+        // Payment link created successfully: clear the cart.
+        $cart->items()->delete();
 
         $order->load(['items', 'payments', 'shippingAddress']);
 

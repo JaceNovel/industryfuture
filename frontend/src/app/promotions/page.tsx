@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import type { Product } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type ProductsResponse = {
   data: Product[];
@@ -22,9 +24,25 @@ function formatPrice(v: unknown) {
 }
 
 export default function PromotionsPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-10" />}>
+      <PromotionsClient />
+    </Suspense>
+  );
+}
+
+function PromotionsClient() {
+  const searchParams = useSearchParams();
+  const category = searchParams.get("category") ?? "";
+
   const productsQuery = useQuery({
-    queryKey: ["products", "promotions"],
-    queryFn: () => apiGet<ProductsResponse>("/api/products?promo=1&sort=newest"),
+    queryKey: ["products", "promotions", category],
+    queryFn: () =>
+      apiGet<ProductsResponse>(
+        category
+          ? `/api/products?promo=1&sort=newest&category=${encodeURIComponent(category)}`
+          : "/api/products?promo=1&sort=newest"
+      ),
   });
 
   const products = productsQuery.data?.data ?? [];

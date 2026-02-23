@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
@@ -38,6 +38,8 @@ export default function ShopClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const searchParamsKey = useMemo(() => searchParams.toString(), [searchParams]);
+
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [sort, setSort] = useState(searchParams.get("sort") ?? "newest");
   const [category, setCategory] = useState(searchParams.get("category") ?? "");
@@ -48,6 +50,27 @@ export default function ShopClient() {
     const raw = Number(searchParams.get("page") ?? 1);
     return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
   });
+
+  // Keep local state in sync when the URL changes (e.g. user clicks a category link while already on /shop)
+  useEffect(() => {
+    const nextSearch = searchParams.get("search") ?? "";
+    const nextSort = searchParams.get("sort") ?? "newest";
+    const nextCategory = searchParams.get("category") ?? "";
+    const nextMinPrice = searchParams.get("minPrice") ?? "";
+    const nextMaxPrice = searchParams.get("maxPrice") ?? "";
+    const nextTag = searchParams.get("tag") ?? "";
+    const rawPage = Number(searchParams.get("page") ?? 1);
+    const nextPage = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+
+    if (search !== nextSearch) setSearch(nextSearch);
+    if (sort !== nextSort) setSort(nextSort);
+    if (category !== nextCategory) setCategory(nextCategory);
+    if (minPrice !== nextMinPrice) setMinPrice(nextMinPrice);
+    if (maxPrice !== nextMaxPrice) setMaxPrice(nextMaxPrice);
+    if (tag !== nextTag) setTag(nextTag);
+    if (page !== nextPage) setPage(nextPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParamsKey]);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],

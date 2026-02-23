@@ -78,8 +78,8 @@ class PaymentWebhookController extends Controller
 
         if ($newStatus === 'completed') {
             $order = Order::find($payment->order_id);
-            if ($order && $order->status === 'pending') {
-                $order->status = 'paid';
+            if ($order && in_array($order->status, ['pending', 'paid'], true)) {
+                $order->status = 'preparing';
                 $order->save();
             }
         }
