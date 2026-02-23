@@ -221,7 +221,9 @@ class ProductImportController extends Controller
 
         $body = $res->body();
         if (strlen($body) > 4 * 1024 * 1024) {
-            throw new \RuntimeException('Image too large (>4MB)');
+            // Render deployments often run on ephemeral storage. If an image is too large,
+            // don't fail the entire product import: keep the original remote URL.
+            return $url;
         }
 
         $filename = $slug.'-'.$sortOrder.'-'.Str::random(6).'.'.$ext;
