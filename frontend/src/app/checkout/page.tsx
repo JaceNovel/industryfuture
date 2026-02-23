@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { apiPost } from "@/lib/api";
-import type { Order } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiGet, apiPost } from "@/lib/api";
+import type { Address, Order } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,8 +21,46 @@ type CheckoutResponse = {
   payment_url?: string;
 };
 
+type CheckoutPayload =
+  | {
+      shipping_address_id: number;
+      customer_phone?: string | null;
+      customer_country?: string;
+    }
+  | {
+      shipping_address: {
+        full_name: string;
+        line1: string;
+        line2?: string | null;
+        city: string;
+        postal_code: string;
+        country?: string;
+        phone?: string | null;
+      };
+      customer_phone?: string | null;
+      customer_country?: string;
+    };
+
+function addressLabel(a: Address) {
+  const line1 = (a.line1 ?? "").trim();
+  const city = (a.city ?? "").trim();
+  const postal = (a.postal_code ?? "").trim();
+  const parts = [line1, [city, postal].filter(Boolean).join(" ")].filter(Boolean);
+  return parts.join(" — ") || `Adresse #${a.id}`;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
+
+  const addressesQuery = useQuery({
+    queryKey: ["addresses"],
+    queryFn: () => apiGet<Address[]>("/api/addresses"),
+  });
+
+  const addresses = addressesQuery.data ?? [];
+  const defaultAddress = useMemo(() => addresses.find((a) => a.is_default) ?? addresses[0] ?? null, [addresses]);
+  const [selectedAddress, setSelectedAddress] = useState<string>("");
+
   const [fullName, setFullName] = useState("");
   const [line1, setLine1] = useState("");
   const [line2, setLine2] = useState("");
@@ -30,19 +69,49 @@ export default function CheckoutPage() {
   const [country, setCountry] = useState("BJ");
   const [phone, setPhone] = useState("");
 
+  useEffect(() => {
+    if (selectedAddress) return;
+    if (addressesQuery.isSuccess) {
+      if (defaultAddress) {
+        setSelectedAddress(String(defaultAddress.id));
+      } else {
+        setSelectedAddress("new");
+      }
+    }
+  }, [addressesQuery.isSuccess, defaultAddress, selectedAddress]);
+
+  const selectedAddressObj = useMemo(() => {
+    const id = Number(selectedAddress);
+    if (!Number.isFinite(id)) return null;
+    return addresses.find((a) => a.id === id) ?? null;
+  }, [addresses, selectedAddress]);
+
+  const usingSavedAddress = Boolean(selectedAddressObj);
+  const usingNewAddress = !usingSavedAddress;
+
   const checkout = useMutation({
-    mutationFn: () =>
-      apiPost<CheckoutResponse>("/api/checkout", {
-        shipping_address: {
-          full_name: fullName,
-          line1,
-          line2: line2 || null,
-          city,
-          postal_code: postalCode,
-          country,
-          phone: phone || null,
-        },
-      }),
+    mutationFn: () => {
+      const payload: CheckoutPayload = selectedAddressObj
+        ? {
+            shipping_address_id: selectedAddressObj.id,
+            customer_phone: phone.trim() ? phone.trim() : null,
+            customer_country: country,
+          }
+        : {
+            shipping_address: {
+              full_name: fullName,
+              line1,
+              line2: line2 || null,
+              city,
+              postal_code: postalCode,
+              country,
+              phone: phone || null,
+            },
+            customer_phone: phone.trim() ? phone.trim() : null,
+            customer_country: country,
+          };
+      return apiPost<CheckoutResponse>("/api/checkout", payload);
+    },
     onSuccess: (res) => {
       const paymentUrl = (res.payment_url ?? "").trim();
       if (paymentUrl) {
@@ -52,6 +121,9 @@ export default function CheckoutPage() {
       router.push(`/account/orders/${res.order.id}`);
     },
   });
+
+  const canSubmitNew = fullName.trim() && line1.trim() && city.trim() && postalCode.trim();
+  const canSubmit = usingSavedAddress ? true : Boolean(canSubmitNew);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-10">
@@ -112,6 +184,50 @@ export default function CheckoutPage() {
           <CardTitle className="text-base text-slate-950">Adresse</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
+          {addressesQuery.isError ? (
+            <div className="text-sm text-destructive">{(addressesQuery.error as Error).message}</div>
+          ) : null}
+
+          {addresses.length ? (
+            <div className="grid gap-2">
+              <Label>Adresse enregistrée</Label>
+              <select
+                value={selectedAddress}
+                onChange={(e) => setSelectedAddress(e.target.value)}
+                className="h-11 w-full rounded-full border border-[#d4af37]/22 bg-white/70 px-4 text-sm shadow-[0_12px_24px_-20px_rgba(212,175,55,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/20"
+              >
+                {addresses.map((a) => (
+                  <option key={a.id} value={String(a.id)}>
+                    {a.is_default ? "(Par défaut) " : ""}
+                    {addressLabel(a)}
+                  </option>
+                ))}
+                <option value="new">Nouvelle adresse…</option>
+              </select>
+
+              {selectedAddressObj ? (
+                <div className="rounded-[18px] border border-[#d4af37]/18 bg-white/55 p-4 text-sm text-slate-700 shadow-[0_12px_26px_-22px_rgba(212,175,55,0.45)]">
+                  <div className="font-medium text-slate-900">{addressLabel(selectedAddressObj)}</div>
+                  <div className="mt-1 text-slate-600">{String(selectedAddressObj.country ?? "").toUpperCase()}</div>
+                  <div className="mt-2">
+                    <Link href="/account/addresses" className="text-sm underline">
+                      Gérer mes adresses
+                    </Link>
+                  </div>
+                </div>
+              ) : selectedAddress === "new" ? (
+                <div className="text-sm text-slate-600">
+                  <Link href="/account/addresses" className="underline">
+                    Ajouter une adresse
+                  </Link>
+                  {" "}ou remplissez le formulaire ci-dessous.
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {usingNewAddress ? (
+            <>
           <div className="grid gap-2">
             <Label>Nom complet</Label>
             <Input
@@ -154,6 +270,9 @@ export default function CheckoutPage() {
               />
             </div>
           </div>
+            </>
+          ) : null}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label>Pays</Label>
@@ -183,7 +302,7 @@ export default function CheckoutPage() {
               className="w-full rounded-full border-none text-[#3f2e05] shadow-[0_16px_32px_-24px_rgba(212,175,55,0.85)] transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-22px_rgba(212,175,55,0.9)] sm:w-auto"
               style={{ backgroundImage: GOLD_GRADIENT }}
               onClick={() => checkout.mutate()}
-              disabled={checkout.isPending || !fullName || !line1 || !city || !postalCode}
+              disabled={checkout.isPending || !canSubmit}
             >
               Confirmer
             </Button>

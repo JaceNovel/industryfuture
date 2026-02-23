@@ -18,6 +18,7 @@ class CheckoutController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'shipping_address_id' => ['nullable', 'integer'],
             'shipping_address' => ['nullable', 'array'],
             'shipping_address.full_name' => ['required_with:shipping_address', 'string', 'max:255'],
             'shipping_address.line1' => ['required_with:shipping_address', 'string', 'max:255'],
@@ -26,6 +27,8 @@ class CheckoutController extends Controller
             'shipping_address.postal_code' => ['required_with:shipping_address', 'string', 'max:32'],
             'shipping_address.country' => ['nullable', 'string', 'max:2'],
             'shipping_address.phone' => ['nullable', 'string', 'max:64'],
+            'customer_phone' => ['nullable', 'string', 'max:64'],
+            'customer_country' => ['nullable', 'string', 'max:2'],
         ]);
 
         $user = $request->user();
@@ -36,8 +39,32 @@ class CheckoutController extends Controller
             return response()->json(['message' => 'Cart is empty'], 422);
         }
 
-        $result = DB::transaction(function () use ($validated, $user, $cart) {
+        $existingAddress = null;
+        if (!empty($validated['shipping_address_id'])) {
+            $existingAddress = Address::query()
+                ->where('id', (int) $validated['shipping_address_id'])
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$existingAddress) {
+                return response()->json(['message' => 'Address not found'], 404);
+            }
+        }
+
+        if (empty($validated['shipping_address']) && !$existingAddress) {
+            $existingAddress = $user->addresses()
+                ->orderByDesc('is_default')
+                ->orderByDesc('created_at')
+                ->first();
+
+            if (!$existingAddress) {
+                return response()->json(['message' => 'Shipping address is required'], 422);
+            }
+        }
+
+        $result = DB::transaction(function () use ($validated, $user, $cart, $existingAddress) {
             $addressId = null;
+            $createdAddressId = null;
             if (!empty($validated['shipping_address'])) {
                 $addr = $validated['shipping_address'];
                 $country = strtoupper((string) ($addr['country'] ?? 'BJ'));
@@ -57,6 +84,9 @@ class CheckoutController extends Controller
                     'is_default' => false,
                 ]);
                 $addressId = $address->id;
+                $createdAddressId = $address->id;
+            } elseif ($existingAddress) {
+                $addressId = (int) $existingAddress->id;
             }
 
             $subtotal = 0;
@@ -111,11 +141,11 @@ class CheckoutController extends Controller
             ]);
 
             $order->load(['items', 'payments', 'shippingAddress']);
-            return [$order, $payment, $addressId];
+            return [$order, $payment, $createdAddressId, $addressId];
         });
 
-        /** @var array{0: \App\Models\Order, 1: \App\Models\Payment, 2: int|null} $result */
-        [$order, $payment, $addressId] = $result;
+        /** @var array{0: \App\Models\Order, 1: \App\Models\Payment, 2: int|null, 3: int|null} $result */
+        [$order, $payment, $createdAddressId, $addressId] = $result;
 
         $gateway = app(FedapayGateway::class);
         if (!$gateway->isConfigured()) {
@@ -124,16 +154,38 @@ class CheckoutController extends Controller
             ], 500);
         }
 
-        $fullName = (string) ($validated['shipping_address']['full_name'] ?? $user->name ?? '');
+        $address = null;
+        if ($addressId) {
+            $address = Address::query()->where('id', (int) $addressId)->first();
+        }
+
+        $fullName = (string) (
+            $validated['shipping_address']['full_name']
+                ?? ($address?->full_name)
+                ?? ($user->name ?? '')
+        );
         $fullName = trim($fullName);
         $parts = preg_split('/\s+/', $fullName, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $firstname = $parts[0] ?? 'Client';
         $lastname = count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : '—';
 
-        $phone = (string) ($validated['shipping_address']['phone'] ?? '');
-        $country = strtoupper((string) ($validated['shipping_address']['country'] ?? 'BJ'));
+        $phone = (string) (
+            $validated['customer_phone']
+                ?? ($validated['shipping_address']['phone'] ?? null)
+                ?? ($address?->phone)
+                ?? ''
+        );
+        $country = strtoupper((string) (
+            $validated['customer_country']
+                ?? ($validated['shipping_address']['country'] ?? null)
+                ?? ($address?->country)
+                ?? 'BJ'
+        ));
         if (strlen($country) > 2) {
             $country = substr($country, 0, 2);
+        }
+        if (strlen($country) !== 2) {
+            $country = 'BJ';
         }
 
         $customer = [
@@ -169,10 +221,10 @@ class CheckoutController extends Controller
 
             // Don't create an unpaid order if the payment can't be initialized.
             // Keep the cart intact so the user can retry.
-            DB::transaction(function () use ($order, $addressId) {
+            DB::transaction(function () use ($order, $createdAddressId) {
                 $order->delete();
-                if ($addressId) {
-                    Address::query()->where('id', $addressId)->delete();
+                if ($createdAddressId) {
+                    Address::query()->where('id', $createdAddressId)->delete();
                 }
             });
 

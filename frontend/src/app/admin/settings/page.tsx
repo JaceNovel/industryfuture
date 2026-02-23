@@ -26,6 +26,10 @@ type WithdrawalRequest = {
 
 type PaginatedResponse<T> = { data: T[] };
 
+type OrdersResponse = {
+  data: Array<{ total?: number | string; status?: string | null }>;
+};
+
 function formatMoney(v: unknown) {
   const n = Number(v ?? 0);
   return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0)} FCFA`;
@@ -57,7 +61,28 @@ export default function AdminSettingsPage() {
     queryFn: () => apiGet<PaginatedResponse<WithdrawalRequest>>("/api/admin/withdrawal-requests"),
   });
 
+  const ordersQuery = useQuery({
+    queryKey: ["admin-orders"],
+    queryFn: () => apiGet<OrdersResponse>("/api/admin/orders"),
+  });
+
   const requests = withdrawalsQuery.data?.data ?? [];
+
+  const revenueTotal = useMemo(() => {
+    const orders = ordersQuery.data?.data ?? [];
+    return orders.reduce((sum, o) => {
+      const s = String(o.status ?? "").toLowerCase();
+      const isValidated = ["preparing", "preparation", "processing", "shipped", "delivered", "paid"].includes(s);
+      if (!isValidated) return sum;
+      return sum + Number(o.total ?? 0);
+    }, 0);
+  }, [ordersQuery.data]);
+
+  const withdrawalsTotal = useMemo(() => {
+    return requests.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+  }, [requests]);
+
+  const remaining = useMemo(() => revenueTotal - withdrawalsTotal, [revenueTotal, withdrawalsTotal]);
 
   const createRequest = useMutation({
     mutationFn: async () =>
@@ -115,6 +140,21 @@ export default function AdminSettingsPage() {
           <CardTitle>Nouvelle demande de retrait</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-3 rounded-xl border bg-background p-4 md:grid-cols-3">
+            <div>
+              <div className="text-xs text-muted-foreground">Revenu total (commandes validées)</div>
+              <div className="mt-1 text-lg font-semibold">{formatMoney(revenueTotal)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Retraits demandés</div>
+              <div className="mt-1 text-lg font-semibold">{formatMoney(withdrawalsTotal)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Solde restant</div>
+              <div className="mt-1 text-lg font-semibold">{formatMoney(remaining)}</div>
+            </div>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-3">
             <div className="grid gap-2">
               <Label>Réseau</Label>
