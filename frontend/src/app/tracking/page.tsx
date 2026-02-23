@@ -39,6 +39,7 @@ function statusLabel(status: string) {
   if (s === "preparing" || s === "preparation" || s === "processing") return "En préparation";
   if (s === "shipped" || s.includes("exped")) return "Expédié";
   if (s === "delivered" || s.includes("livr")) return "Livré";
+  if (s === "canceled" || s === "cancelled" || s === "annule" || s === "annulée" || s === "annulee") return "Annulée";
   return status;
 }
 

@@ -76,10 +76,30 @@ class PaymentWebhookController extends Controller
         }
         $payment->save();
 
-        if ($newStatus === 'completed') {
-            $order = Order::find($payment->order_id);
-            if ($order && in_array($order->status, ['pending', 'paid'], true)) {
+        $order = Order::find($payment->order_id);
+        if ($order) {
+            if ($newStatus === 'completed' && in_array($order->status, ['pending', 'paid'], true)) {
                 $order->status = 'preparing';
+
+                $meta = (array) ($order->metadata ?? []);
+                if (!isset($meta['preparing_at'])) {
+                    $meta['preparing_at'] = now()->toIso8601String();
+                    $order->metadata = $meta;
+                }
+
+                $order->save();
+            }
+
+            if ($newStatus === 'failed' && in_array($order->status, ['pending', 'paid'], true)) {
+                // If the customer cancels/refuses the payment, the order should not be considered validated.
+                $order->status = 'canceled';
+
+                $meta = (array) ($order->metadata ?? []);
+                if (!isset($meta['canceled_at'])) {
+                    $meta['canceled_at'] = now()->toIso8601String();
+                    $order->metadata = $meta;
+                }
+
                 $order->save();
             }
         }

@@ -15,6 +15,16 @@ function formatMoneyFCFA(v: unknown) {
   return `${new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)} FCFA`;
 }
 
+function statusLabel(status: string) {
+  const s = (status ?? "").toLowerCase();
+  if (s === "pending") return "En attente";
+  if (s === "preparing" || s === "preparation" || s === "processing") return "En préparation";
+  if (s === "shipped" || s.includes("exped")) return "Expédiée";
+  if (s === "delivered" || s.includes("livr")) return "Livrée";
+  if (s === "canceled" || s === "cancelled" || s === "annule" || s === "annulée" || s === "annulee") return "Annulée";
+  return status;
+}
+
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
@@ -32,7 +42,7 @@ export default function OrderDetailsPage() {
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Commande #{id}</h1>
-          {order ? <Badge variant="secondary" className="mt-2">{order.status}</Badge> : null}
+          {order ? <Badge variant="secondary" className="mt-2">{statusLabel(order.status)}</Badge> : null}
         </div>
         <Button asChild variant="secondary" className="w-full sm:w-auto">
           <Link href="/account/orders">Retour</Link>

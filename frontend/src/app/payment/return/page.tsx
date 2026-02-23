@@ -15,10 +15,14 @@ export default function PaymentReturnPage({ searchParams }: Props) {
   const orderId = searchParams?.order_id ?? null;
   const status = (searchParams?.status ?? "").toLowerCase();
 
-  const title = status === "approved" ? "Paiement confirmé" : "Merci";
-  const message =
-    status === "approved"
-      ? "Votre paiement a été reçu. Vous pouvez suivre votre commande dans votre compte."
+  const isApproved = status === "approved" || status === "paid" || status === "completed";
+  const isCanceled = ["canceled", "cancelled", "declined", "failed", "expired"].includes(status);
+
+  const title = isApproved ? "Paiement confirmé" : isCanceled ? "Paiement annulé" : "Merci";
+  const message = isApproved
+    ? "Votre paiement a été reçu. Vous pouvez suivre votre commande dans votre compte."
+    : isCanceled
+      ? "Votre paiement a été annulé ou refusé. La commande n'a pas été validée."
       : "Votre paiement est en cours de validation. Vous pouvez suivre votre commande dans votre compte.";
 
   return (

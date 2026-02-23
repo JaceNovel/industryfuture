@@ -37,6 +37,7 @@ function statusLabel(status: string) {
   if (s === "preparing" || s === "preparation" || s === "processing") return "En préparation";
   if (s === "shipped" || s === "expedie" || s === "expédiée" || s === "expediee" || s === "expédiées") return "Expédiées";
   if (s === "delivered" || s === "livree" || s === "livrée" || s === "livrées") return "Livrées";
+  if (s === "canceled" || s === "cancelled" || s === "annule" || s === "annulée" || s === "annulee") return "Annulée";
   return status;
 }
 
