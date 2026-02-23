@@ -18,7 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
@@ -31,8 +31,55 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 type PopularItem = Product;
 
+const POPULAR_ROTATION_DAYS = 5;
+const POPULAR_ROTATION_MS = POPULAR_ROTATION_DAYS * 24 * 60 * 60 * 1000;
+const POPULAR_LIMIT = 8;
+const POPULAR_CANDIDATES_LIMIT = 40;
+
+function fiveDayWindowKey(ts: number) {
+  return Math.floor(ts / POPULAR_ROTATION_MS);
+}
+
+function stableHash32(input: string) {
+  // FNV-1a 32-bit
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function productStableKey(p: Product, fallbackIndex: number) {
+  const id = p.id != null ? String(p.id) : "";
+  const slug = (p.slug ?? "").trim();
+  const sku = (p.sku ?? "").trim();
+  return id || slug || sku || `idx:${fallbackIndex}`;
+}
+
 export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [popularRotationKey, setPopularRotationKey] = useState(() =>
+    typeof window === "undefined" ? 0 : fiveDayWindowKey(Date.now())
+  );
+
+  // Keep the selection stable for 5 days, then rotate automatically.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const now = Date.now();
+    const currentKey = fiveDayWindowKey(now);
+    if (currentKey !== popularRotationKey) {
+      setPopularRotationKey(currentKey);
+      return;
+    }
+
+    const nextBoundary = (currentKey + 1) * POPULAR_ROTATION_MS;
+    const delay = Math.max(1_000, nextBoundary - now + 1_000);
+    const id = window.setTimeout(() => {
+      setPopularRotationKey(fiveDayWindowKey(Date.now()));
+    }, delay);
+    return () => window.clearTimeout(id);
+  }, [popularRotationKey]);
 
   useEffect(() => {
     const video = heroVideoRef.current ?? document.getElementById("heroVideo");
@@ -126,7 +173,7 @@ export default function Home() {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [popularRotationKey]);
 
   const featuredQuery = useQuery({
     queryKey: ["products", "featured"],
@@ -139,7 +186,19 @@ export default function Home() {
   const featured = featuredQuery.data?.data ?? [];
   const fallbackProducts = productsQuery.data?.data ?? [];
   const sourceProducts = featured.length ? featured : fallbackProducts;
-  const popularItems: PopularItem[] = sourceProducts.slice(0, 8);
+  const popularItems: PopularItem[] = useMemo(() => {
+    if (!sourceProducts.length) return [];
+
+    // Keep the selection "popular" by rotating within the best candidates.
+    const candidates = sourceProducts.slice(0, Math.max(POPULAR_LIMIT, Math.min(POPULAR_CANDIDATES_LIMIT, sourceProducts.length)));
+    const scored = candidates.map((p, i) => {
+      const key = productStableKey(p, i);
+      const score = stableHash32(`${popularRotationKey}:${key}`);
+      return { p, score };
+    });
+    scored.sort((a, b) => a.score - b.score);
+    return scored.slice(0, POPULAR_LIMIT).map((x) => x.p);
+  }, [popularRotationKey, sourceProducts]);
 
   const steps = [
     {
