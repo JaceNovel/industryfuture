@@ -82,7 +82,7 @@ export default function AdminSettingsPage() {
     return requests.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
   }, [requests]);
 
-  const remaining = useMemo(() => revenueTotal - withdrawalsTotal, [revenueTotal, withdrawalsTotal]);
+  const remaining = 0;
 
   const createRequest = useMutation({
     mutationFn: async () =>

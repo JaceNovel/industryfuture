@@ -80,7 +80,7 @@ export default function AdminHome() {
   const orders = ordersQuery.data?.data ?? [];
   const products = productsQuery.data?.data ?? [];
 
-  const revenueTotal = useMemo(() => orders.reduce((sum, o) => sum + Number(o.total ?? 0), 0), [orders]);
+  const revenueTotal = 0;
   const ordersTotal = orders.length;
   const productsTotal = products.length;
   const clientsTotal = useMemo(() => {

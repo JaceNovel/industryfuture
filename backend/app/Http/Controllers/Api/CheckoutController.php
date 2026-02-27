@@ -236,9 +236,6 @@ class CheckoutController extends Controller
             return response()->json($payload, 502);
         }
 
-        // Payment link created successfully: clear the cart.
-        $cart->items()->delete();
-
         $order->load(['items', 'payments', 'shippingAddress']);
 
         return response()->json([

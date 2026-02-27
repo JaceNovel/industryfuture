@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Payments\FedapayGateway;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PaymentWebhookController extends Controller
 {
@@ -101,6 +102,37 @@ class PaymentWebhookController extends Controller
                 }
 
                 $order->save();
+            }
+            if ($newStatus === 'completed') {
+                // Only now that payment is confirmed, remove purchased items from the user's cart.
+                // This prevents emptying the cart when the customer cancels or abandons checkout.
+                try {
+                    if ($order && $order->user_id) {
+                        $cart = \App\Models\Cart::firstOrCreate(['user_id' => $order->user_id]);
+                        $orderItems = $order->items()->get(['product_id', 'quantity']);
+
+                        foreach ($orderItems as $orderItem) {
+                            $cartItem = $cart->items()->where('product_id', $orderItem->product_id)->first();
+                            if (!$cartItem) {
+                                continue;
+                            }
+
+                            $remainingQty = (int) $cartItem->quantity - (int) $orderItem->quantity;
+                            if ($remainingQty > 0) {
+                                $cartItem->quantity = $remainingQty;
+                                $cartItem->save();
+                            } else {
+                                $cartItem->delete();
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to reconcile cart after completed payment webhook', [
+                        'payment_id' => $payment->id,
+                        'order_id' => $payment->order_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 

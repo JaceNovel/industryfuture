@@ -31,6 +31,14 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 type PopularItem = Product;
 
+type ProductsResponse = {
+  data: Product[];
+  current_page?: number;
+  last_page?: number;
+  per_page?: number;
+  total?: number;
+};
+
 const POPULAR_ROTATION_DAYS = 5;
 const POPULAR_ROTATION_MS = POPULAR_ROTATION_DAYS * 24 * 60 * 60 * 1000;
 const POPULAR_LIMIT = 8;
@@ -55,6 +63,68 @@ function productStableKey(p: Product, fallbackIndex: number) {
   const slug = (p.slug ?? "").trim();
   const sku = (p.sku ?? "").trim();
   return id || slug || sku || `idx:${fallbackIndex}`;
+}
+
+async function fetchAllProducts() {
+  const perPage = 60;
+  let page = 1;
+  let lastPage = 1;
+  const out: Product[] = [];
+  let guard = 0;
+
+  do {
+    // Backend supports pagination on /api/products in other pages (shop).
+    const res = await apiGet<ProductsResponse>(`/api/products?sort=newest&page=${page}&per_page=${perPage}`);
+    out.push(...(res.data ?? []));
+    lastPage = Math.max(1, Number(res.last_page ?? 1));
+    page += 1;
+    guard += 1;
+  } while (page <= lastPage && guard < 50);
+
+  return out;
+}
+
+function ReadyToLevelUp({ className }: { className?: string }) {
+  return (
+    <section className={className}>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.25 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto max-w-6xl rounded-[28px] bg-[var(--bg-dark-soft)] px-5 py-8 text-white shadow-[0_24px_50px_-40px_rgba(0,0,0,0.6)] md:px-10 md:py-14"
+      >
+        <div className="grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
+          <div>
+            <h2 className="text-balance text-[22px] font-semibold tracking-tight leading-tight md:text-3xl lg:text-4xl">
+              Prêt à passer au niveau supérieur ?
+            </h2>
+            <p className="mt-3 max-w-xl text-sm text-slate-300 sm:text-base">
+              Une expérience e-commerce premium, minimaliste et conçue pour performer.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
+            <Button
+              asChild
+              className="rounded-full border-none text-[#3f2e05] transition-all duration-400 hover:scale-[1.02] hover:shadow-[0_14px_30px_-18px_rgba(212,175,55,0.8)]"
+              style={{ backgroundImage: GOLD_GRADIENT }}
+            >
+              <Link href="/shop" className="inline-flex items-center gap-2">
+                Voir les produits <PackageCheck className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-full border-white/30 bg-transparent text-white transition-all duration-400 hover:bg-white/10"
+            >
+              <Link href="/auth/login">Se connecter</Link>
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </section>
+  );
 }
 
 export default function Home() {
@@ -134,12 +204,7 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.innerWidth > 768) return;
-    const button = document.querySelector(".explore-button");
-    if (!button) return;
-    const timeoutId = window.setTimeout(() => {
-      button.classList.add("active");
-    }, 300);
-    return () => window.clearTimeout(timeoutId);
+    return;
   }, []);
 
   useEffect(() => {
@@ -183,6 +248,13 @@ export default function Home() {
     queryKey: ["products", "newest-home"],
     queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=newest"),
   });
+
+  const allProductsQuery = useQuery({
+    queryKey: ["products", "all"],
+    queryFn: fetchAllProducts,
+  });
+
+  const allProducts = allProductsQuery.data ?? [];
   const featured = featuredQuery.data?.data ?? [];
   const fallbackProducts = productsQuery.data?.data ?? [];
   const sourceProducts = featured.length ? featured : fallbackProducts;
@@ -199,6 +271,53 @@ export default function Home() {
     scored.sort((a, b) => a.score - b.score);
     return scored.slice(0, POPULAR_LIMIT).map((x) => x.p);
   }, [popularRotationKey, sourceProducts]);
+
+  const popularHalf = Math.ceil(popularItems.length / 2);
+  const popularBandTop = popularItems.slice(0, popularHalf);
+  const popularBandBottom = popularItems.slice(popularHalf);
+
+  const renderPopularCard = (item: PopularItem, idx: number, keyPrefix: string) => {
+    const href = `/product/${item.slug}`;
+    const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
+
+    return (
+      <article
+        key={item.id ?? item.slug ?? `${keyPrefix}-${idx}`}
+        className="product-card homepage-product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
+      >
+        <div className="pointer-events-none absolute" />
+        <Link href={href} className="block">
+          <div className="homepage-product-media relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
+            {img.startsWith("/") ? (
+              <Image
+                src={img}
+                alt={item.name}
+                fill
+                sizes="(min-width: 1024px) 25vw, 100vw"
+                className="object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img}
+                alt={item.images?.[0]?.alt ?? item.name}
+                className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+            )}
+          </div>
+          <h3 className="product-title mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
+          <p className="product-price mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
+        </Link>
+        <Button
+          asChild
+          variant="outline"
+          className="premium-button mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]"
+        >
+          <Link href={href}>Voir le produit</Link>
+        </Button>
+      </article>
+    );
+  };
 
   const steps = [
     {
@@ -261,18 +380,6 @@ export default function Home() {
             </video>
           </motion.section>
         </section>
-
-        <section className="explore-button-mobile-shell hidden w-full">
-          <Button
-            asChild
-            variant="outline"
-            className="explore-button explore-button-mobile premium-button rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
-          >
-            <Link href="/shop" className="inline-flex items-center">
-              Explorer la boutique
-            </Link>
-          </Button>
-        </section>
       </div>
 
       <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
@@ -303,6 +410,13 @@ export default function Home() {
             </Button>
           </motion.div>
 
+          {/* Mobile only: “Voir toutes nos variétés” before the first band */}
+          <div className="mb-3 flex justify-end md:hidden">
+            <Link href="/shop" className="text-sm font-medium text-[#694d08] underline underline-offset-4">
+              Voir toutes nos variétés
+            </Link>
+          </div>
+
           {featuredQuery.isLoading && productsQuery.isLoading ? (
             <p className="text-sm text-slate-500">Chargement des produits...</p>
           ) : null}
@@ -313,44 +427,90 @@ export default function Home() {
             <p className="text-sm text-slate-500">Aucun produit disponible.</p>
           ) : null}
 
+          {/* Mobile: two horizontal bands */}
+          <div className="space-y-4 md:hidden">
+            <div className="popular-products-container homepage-products-container">
+              {popularBandTop.map((item, idx) => renderPopularCard(item, idx, "popular-top"))}
+            </div>
+            {popularBandBottom.length ? (
+              <div className="popular-products-container homepage-products-container">
+                {popularBandBottom.map((item, idx) => renderPopularCard(item, idx, "popular-bottom"))}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Desktop: keep existing behavior */}
           <motion.div
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
+            className="popular-products popular-products-container homepage-products-container hidden grid grid-cols-2 gap-4 sm:gap-6 md:grid md:grid-cols-3 lg:grid-cols-4"
           >
-            {popularItems.map((item, idx) => {
-              const href = `/product/${item.slug}`;
-              const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
+            {popularItems.map((item, idx) => renderPopularCard(item, idx, "popular"))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Mobile only: move the “Ready” section just after popular products */}
+      <ReadyToLevelUp className="ready-section w-full px-4 pt-6 sm:px-8 md:hidden" />
+
+      <section id="all-products" className="all-products w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+        <div className="mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-5 flex flex-wrap items-center justify-between gap-4 md:mb-7"
+          >
+            <div>
+              <h2 className="text-[22px] font-semibold tracking-tight text-white md:text-3xl">Toutes nos pépites</h2>
+              <p className="mt-1 text-sm text-slate-200">Tous nos produits — scroll vertical.</p>
+            </div>
+          </motion.div>
+
+          {allProductsQuery.isLoading ? <p className="text-sm text-slate-200">Chargement des produits…</p> : null}
+          {allProductsQuery.isError ? <p className="text-sm text-slate-200">API indisponible.</p> : null}
+          {!allProductsQuery.isLoading && !allProductsQuery.isError && allProducts.length === 0 ? (
+            <p className="text-sm text-slate-200">Aucun produit disponible.</p>
+          ) : null}
+
+          <div className="all-products-grid grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {allProducts.map((p, idx) => {
+              const href = `/product/${p.slug}`;
+              const img = p.images?.[0]?.url ?? PLACEHOLDER_IMG;
 
               return (
-                <article
-                  key={item.id ?? item.slug ?? `popular-${idx}`}
-                  className="product-card homepage-product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:-translate-y-1 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
+                <motion.article
+                  key={p.id ?? p.slug ?? `all-${idx}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  className="product-card group rounded-[20px] border border-[#d4af37]/20 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(0,0,0,0.18)]"
                 >
-                  <div className="pointer-events-none absolute" />
                   <Link href={href} className="block">
-                    <div className="homepage-product-media relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
                       {img.startsWith("/") ? (
                         <Image
                           src={img}
-                          alt={item.name}
+                          alt={p.name}
                           fill
-                          sizes="(min-width: 1024px) 25vw, 100vw"
+                          sizes="(min-width: 1024px) 25vw, 50vw"
                           className="object-contain transition-transform duration-300 group-hover:scale-105"
                         />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={img}
-                          alt={item.images?.[0]?.alt ?? item.name}
+                          alt={p.images?.[0]?.alt ?? p.name}
                           className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
                         />
                       )}
                     </div>
-                    <h3 className="product-title mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
-                    <p className="product-price mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
+                    <h3 className="mt-4 line-clamp-1 text-base font-semibold text-slate-900">{p.name}</h3>
+                    <p className="mt-1 text-sm text-slate-600">{formatPrice(p.price)}</p>
                   </Link>
                   <Button
                     asChild
@@ -359,10 +519,10 @@ export default function Home() {
                   >
                     <Link href={href}>Voir le produit</Link>
                   </Button>
-                </article>
+                </motion.article>
               );
             })}
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -440,44 +600,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="cta-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.25 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mx-auto max-w-6xl rounded-[28px] bg-[#111014] px-5 py-8 text-white shadow-[0_24px_50px_-40px_rgba(0,0,0,0.6)] md:px-10 md:py-14"
-        >
-          <div className="grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
-            <div>
-              <h2 className="text-balance text-[22px] font-semibold tracking-tight leading-tight md:text-3xl lg:text-4xl">
-                Prêt à passer au niveau supérieur ?
-              </h2>
-              <p className="mt-3 max-w-xl text-sm text-slate-300 sm:text-base">
-                Une expérience e-commerce premium, minimaliste et conçue pour performer.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
-              <Button
-                asChild
-                className="rounded-full border-none text-[#3f2e05] transition-all duration-400 hover:scale-[1.02] hover:shadow-[0_14px_30px_-18px_rgba(212,175,55,0.8)]"
-                style={{ backgroundImage: GOLD_GRADIENT }}
-              >
-                <Link href="/shop" className="inline-flex items-center gap-2">
-                  Voir les produits <PackageCheck className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="rounded-full border-white/30 bg-transparent text-white transition-all duration-400 hover:bg-white/10"
-              >
-                <Link href="/auth/login">Se connecter</Link>
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      </section>
+      {/* Desktop only: keep the “Ready” section in its original position */}
+      <ReadyToLevelUp className="cta-section hidden w-full px-4 pt-10 sm:px-8 md:block md:px-12 md:pt-16" />
     </main>
   );
 }

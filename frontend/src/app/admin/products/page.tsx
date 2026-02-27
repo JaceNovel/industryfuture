@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 type ProductsResponse = { data: Product[] };
 
@@ -30,6 +30,13 @@ export default function AdminProductsPage() {
   const updatePromo = useMutation({
     mutationFn: ({ id, value }: { id: number; value: boolean }) =>
       apiPatch<Product>(`/api/admin/products/${id}`, { is_promo: value }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["admin-products"] });
+    },
+  });
+
+  const deleteProduct = useMutation({
+    mutationFn: async (id: number) => apiDelete<{ message?: string }>(`/api/admin/products/${id}`),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["admin-products"] });
     },
@@ -86,6 +93,9 @@ export default function AdminProductsPage() {
           {productsQuery.isError ? (
             <div className="text-sm text-destructive">{(productsQuery.error as Error).message}</div>
           ) : null}
+          {deleteProduct.isError ? (
+            <div className="mb-3 text-sm text-destructive">{(deleteProduct.error as Error).message}</div>
+          ) : null}
           <div className="overflow-x-auto">
           <Table className="min-w-[880px]">
             <TableHeader>
@@ -122,13 +132,30 @@ export default function AdminProductsPage() {
                   </TableCell>
                   <TableCell>{p.status}</TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-end gap-2">
                       {typeof p.id === "number" ? (
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/admin/products/${p.id}/edit`} aria-label="Modifier">
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        <>
+                          <Button variant="outline" size="sm" asChild className="gap-2">
+                            <Link href={`/admin/products/${p.id}/edit`} aria-label="Modifier">
+                              <Pencil className="h-4 w-4" /> Modifier
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            aria-label="Supprimer"
+                            disabled={deleteProduct.isPending}
+                            onClick={() => {
+                              if (!p.id) return;
+                              const ok = window.confirm(`Supprimer le produit "${p.name}" ?`);
+                              if (!ok) return;
+                              deleteProduct.mutate(p.id as number);
+                            }}
+                            className="gap-2"
+                          >
+                            <Trash2 className="h-4 w-4" /> Supprimer
+                          </Button>
+                        </>
                       ) : null}
                     </div>
                   </TableCell>

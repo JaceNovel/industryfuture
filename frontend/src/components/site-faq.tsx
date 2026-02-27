@@ -35,7 +35,7 @@ export function SiteFaq() {
       className="rounded-t-3xl bg-primary text-primary-foreground shadow-[0_-14px_40px_-28px_rgba(12,28,66,0.7)]"
     >
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
-        <div className="flex flex-wrap items-start justify-center gap-10 py-10 text-center md:grid md:grid-cols-4 md:justify-between md:py-14 md:text-left">
+        <div className="flex flex-col gap-10 py-10 text-left md:grid md:grid-cols-4 md:justify-between md:py-14 md:text-left">
           {/* Brand */}
           <div className="w-full space-y-4 md:w-auto">
             <div className="flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-start">
@@ -56,7 +56,7 @@ export function SiteFaq() {
           </div>
 
           {/* Navigation */}
-          <div className="min-w-[180px] flex-1 space-y-4 text-center md:flex-none md:text-left">
+          <div className="w-full space-y-4 md:min-w-[180px] md:flex-none md:text-left">
             <div className="text-base font-semibold">Navigation</div>
             <div className="flex flex-col gap-3 text-sm">
               <Link href="/shop" className="text-primary-foreground hover:text-accent hover:underline">
@@ -75,7 +75,7 @@ export function SiteFaq() {
           </div>
 
           {/* Service client */}
-          <div className="min-w-[180px] flex-1 space-y-4 text-center md:flex-none md:text-left">
+          <div className="w-full space-y-4 md:min-w-[180px] md:flex-none md:text-left">
             <div className="text-base font-semibold">Service client</div>
             <div className="flex flex-col gap-3 text-sm">
               <Link href="#" className="text-primary-foreground hover:text-accent hover:underline">
@@ -91,24 +91,24 @@ export function SiteFaq() {
           </div>
 
           {/* Contact */}
-          <div className="min-w-[200px] flex-1 space-y-4 text-center md:flex-none md:text-left">
+          <div className="w-full space-y-4 md:min-w-[200px] md:flex-none md:text-left">
             <div className="text-base font-semibold">Contact</div>
             <div className="space-y-3 text-sm text-primary-foreground/80">
-              <div className="flex items-center justify-center gap-3 md:justify-start">
+              <div className="flex items-center justify-start gap-3">
                 <Phone className="h-4 w-4" />
                 <span>+22879987000</span>
               </div>
-              <div className="flex items-center justify-center gap-3 md:justify-start">
+              <div className="flex items-center justify-start gap-3">
                 <Mail className="h-4 w-4" />
                 <span>support@futurind.space</span>
               </div>
-              <div className="flex items-center justify-center gap-3 md:justify-start">
+              <div className="flex items-center justify-start gap-3">
                 <MapPin className="h-4 w-4" />
                 <span>Lomé, Togo</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-3 pt-2 md:justify-start">
+            <div className="flex items-center justify-start gap-3 pt-2">
               <a
                 href="https://www.facebook.com/profile.php?id=61578635757172"
                 aria-label="Facebook"

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentLinkController;
+use App\Http\Controllers\Api\PaymentReturnStatusController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -30,6 +31,9 @@ Route::get('/health', HealthController::class);
 
 // Payment webhooks (no auth)
 Route::post('/webhooks/payments', [PaymentWebhookController::class, 'handle']);
+
+// Payment return status (no auth): used by the frontend return page
+Route::get('/payment/return-status', [PaymentReturnStatusController::class, 'show']);
 
 Route::get('/categories', [CategoryController::class, 'index']);
 
