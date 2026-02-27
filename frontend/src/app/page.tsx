@@ -334,7 +334,7 @@ export default function Home() {
   return (
     <main className="home-main w-full bg-white pb-14 md:pb-20">
       <div className="mobile-banner">
-        <section className="w-full bg-white px-0 pb-0 pt-0 sm:px-0 md:px-12 md:pb-10 md:pt-10">
+        <section className="w-full bg-white px-4 pb-0 pt-0 sm:px-8 md:px-12 md:pb-10 md:pt-10">
           <motion.section
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -345,6 +345,16 @@ export default function Home() {
               <source src="/WhatsApp%20Video%202026-02-21%20at%2002.50.34.mp4" type="video/mp4" />
             </video>
           </motion.section>
+
+          {/* Mobile only: CTA bar under the banner (as in previous layout) */}
+          <div className="mt-3 md:hidden">
+            <Link
+              href="/shop"
+              className="block w-full rounded-xl border border-[#d4af37]/25 bg-[#faf8f4] py-2.5 text-center text-sm font-medium text-[#694d08]"
+            >
+              Explorer la boutique
+            </Link>
+          </div>
         </section>
       </div>
 

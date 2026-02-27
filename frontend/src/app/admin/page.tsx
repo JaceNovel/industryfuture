@@ -92,7 +92,11 @@ export default function AdminHome() {
   }, [orders]);
 
   const recentOrders = useMemo(() => {
-    const sorted = [...orders].sort((a, b) => {
+    const eligible = orders.filter((o) => {
+      const s = String(o.status ?? "").toLowerCase();
+      return s !== "pending" && s !== "canceled" && s !== "cancelled";
+    });
+    const sorted = [...eligible].sort((a, b) => {
       const da = a.created_at ? new Date(a.created_at).getTime() : 0;
       const db = b.created_at ? new Date(b.created_at).getTime() : 0;
       return db - da;
