@@ -347,10 +347,10 @@ export default function Home() {
           </motion.section>
 
           {/* Mobile only: CTA bar under the banner (as in previous layout) */}
-          <div className="mt-3 md:hidden">
+          <div className="mt-2 md:hidden">
             <Link
               href="/shop"
-              className="block w-full rounded-xl border border-[#d4af37]/25 bg-[#faf8f4] py-2.5 text-center text-sm font-medium text-[#694d08]"
+              className="block w-full rounded-none border-y border-[#d4af37]/25 bg-[#faf8f4] py-2 text-center text-sm font-medium text-[#694d08]"
             >
               Explorer la boutique
             </Link>
