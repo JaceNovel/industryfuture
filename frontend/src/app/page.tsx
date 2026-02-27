@@ -31,14 +31,6 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 type PopularItem = Product;
 
-type ProductsResponse = {
-  data: Product[];
-  current_page?: number;
-  last_page?: number;
-  per_page?: number;
-  total?: number;
-};
-
 const POPULAR_ROTATION_DAYS = 5;
 const POPULAR_ROTATION_MS = POPULAR_ROTATION_DAYS * 24 * 60 * 60 * 1000;
 const POPULAR_LIMIT = 8;
@@ -63,25 +55,6 @@ function productStableKey(p: Product, fallbackIndex: number) {
   const slug = (p.slug ?? "").trim();
   const sku = (p.sku ?? "").trim();
   return id || slug || sku || `idx:${fallbackIndex}`;
-}
-
-async function fetchAllProducts() {
-  const perPage = 60;
-  let page = 1;
-  let lastPage = 1;
-  const out: Product[] = [];
-  let guard = 0;
-
-  do {
-    // Backend supports pagination on /api/products in other pages (shop).
-    const res = await apiGet<ProductsResponse>(`/api/products?sort=newest&page=${page}&per_page=${perPage}`);
-    out.push(...(res.data ?? []));
-    lastPage = Math.max(1, Number(res.last_page ?? 1));
-    page += 1;
-    guard += 1;
-  } while (page <= lastPage && guard < 50);
-
-  return out;
 }
 
 function ReadyToLevelUp({ className }: { className?: string }) {
@@ -248,13 +221,6 @@ export default function Home() {
     queryKey: ["products", "newest-home"],
     queryFn: () => apiGet<{ data: Product[] }>("/api/products?sort=newest"),
   });
-
-  const allProductsQuery = useQuery({
-    queryKey: ["products", "all"],
-    queryFn: fetchAllProducts,
-  });
-
-  const allProducts = allProductsQuery.data ?? [];
   const featured = featuredQuery.data?.data ?? [];
   const fallbackProducts = productsQuery.data?.data ?? [];
   const sourceProducts = featured.length ? featured : fallbackProducts;
@@ -454,77 +420,6 @@ export default function Home() {
 
       {/* Mobile only: move the “Ready” section just after popular products */}
       <ReadyToLevelUp className="ready-section w-full px-4 pt-6 sm:px-8 md:hidden" />
-
-      <section id="all-products" className="all-products w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
-        <div className="mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-5 flex flex-wrap items-center justify-between gap-4 md:mb-7"
-          >
-            <div>
-              <h2 className="text-[22px] font-semibold tracking-tight text-white md:text-3xl">Toutes nos pépites</h2>
-              <p className="mt-1 text-sm text-slate-200">Tous nos produits — scroll vertical.</p>
-            </div>
-          </motion.div>
-
-          {allProductsQuery.isLoading ? <p className="text-sm text-slate-200">Chargement des produits…</p> : null}
-          {allProductsQuery.isError ? <p className="text-sm text-slate-200">API indisponible.</p> : null}
-          {!allProductsQuery.isLoading && !allProductsQuery.isError && allProducts.length === 0 ? (
-            <p className="text-sm text-slate-200">Aucun produit disponible.</p>
-          ) : null}
-
-          <div className="all-products-grid grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {allProducts.map((p, idx) => {
-              const href = `/product/${p.slug}`;
-              const img = p.images?.[0]?.url ?? PLACEHOLDER_IMG;
-
-              return (
-                <motion.article
-                  key={p.id ?? p.slug ?? `all-${idx}`}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  className="product-card group rounded-[20px] border border-[#d4af37]/20 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(0,0,0,0.18)]"
-                >
-                  <Link href={href} className="block">
-                    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
-                      {img.startsWith("/") ? (
-                        <Image
-                          src={img}
-                          alt={p.name}
-                          fill
-                          sizes="(min-width: 1024px) 25vw, 50vw"
-                          className="object-contain transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={img}
-                          alt={p.images?.[0]?.alt ?? p.name}
-                          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                        />
-                      )}
-                    </div>
-                    <h3 className="mt-4 line-clamp-1 text-base font-semibold text-slate-900">{p.name}</h3>
-                    <p className="mt-1 text-sm text-slate-600">{formatPrice(p.price)}</p>
-                  </Link>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="premium-button mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]"
-                  >
-                    <Link href={href}>Voir le produit</Link>
-                  </Button>
-                </motion.article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       <section className="why-choose-section w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-12">
         <div className="section-divider mx-auto mb-5 h-px w-full max-w-6xl md:mb-8" style={{ backgroundImage: GOLD_GRADIENT }} />

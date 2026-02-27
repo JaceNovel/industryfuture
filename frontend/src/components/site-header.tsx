@@ -85,14 +85,25 @@ export function SiteHeader() {
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isFooterInView, setIsFooterInView] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(false);
-
-  useEffect(() => {
+  const syncAuthState = () => {
     setToken(getToken());
     setRole(getRole());
     setName(getName());
     setEmail(getEmail());
+  };
+
+  useEffect(() => {
+    syncAuthState();
+  }, []);
+
+  useEffect(() => {
+    syncAuthState();
+  }, [pathname]);
+
+  useEffect(() => {
+    const onFocus = () => syncAuthState();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   const active = (href: string) =>
@@ -118,40 +129,6 @@ export function SiteHeader() {
     setAccountOpen(false);
     setMobileMenuOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    const updateViewport = () => {
-      if (typeof window === "undefined") return;
-      setIsMobileView(window.matchMedia("(max-width: 768px)").matches);
-    };
-
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    if (!isMobileView) {
-      setIsFooterInView(false);
-      return undefined;
-    }
-
-    const footerEl = document.getElementById("site-footer");
-    if (!footerEl) return undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsFooterInView(entry.isIntersecting),
-      {
-        root: null,
-        threshold: 0,
-        rootMargin: "0px 0px -80% 0px",
-      }
-    );
-
-    observer.observe(footerEl);
-    return () => observer.disconnect();
-  }, [isMobileView]);
 
   useEffect(() => {
     if (!categoriesOpen) return;
@@ -241,11 +218,7 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header
-      className={`site-header sticky top-0 z-20 border-b transition-colors duration-300 ${
-        isMobileView && isFooterInView ? "bg-white" : "bg-background"
-      }`}
-    >
+    <header className="site-header sticky top-0 z-20 border-b bg-background">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 md:px-6">
         {/* Left: brand + burger + primary links */}
         <div className="flex items-center gap-2">
@@ -633,7 +606,7 @@ export function SiteHeader() {
           <Link
             href="/shop"
             aria-label="Rechercher"
-            className="mobile-search-icon hidden items-center rounded-md p-2 text-foreground"
+            className="mobile-search-icon inline-flex items-center rounded-md p-2 text-foreground hover:bg-muted/30 md:hidden"
           >
             <Search className="h-5 w-5" />
           </Link>
