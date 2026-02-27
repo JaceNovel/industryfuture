@@ -526,8 +526,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="why-choose-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
-        <div className="section-divider mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
+      <section className="why-choose-section w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-12">
+        <div className="section-divider mx-auto mb-5 h-px w-full max-w-6xl md:mb-8" style={{ backgroundImage: GOLD_GRADIENT }} />
         <div className="mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
