@@ -385,7 +385,8 @@ export default function Home() {
                   }}
                 >
                   Explorer la boutique
-                </motion.button>
+                
+</motion.button>
               </Link>
             </div>
         </section>
