@@ -333,20 +333,20 @@ export default function Home() {
 
   return (
     <main className="home-main w-full bg-white pb-14 md:pb-20">
-      <div className="mobile-banner">
-        <section className="w-screen rounded-none md:w-full md:rounded-xl md:max-w-7xl md:mx-auto bg-white pb-0 pt-0 md:px-12 md:pb-10 md:pt-10">
+      <div className="banner-pc">
+        <section className="w-full mt-0 rounded-t-none rounded-b-2xl overflow-hidden">
           <motion.section
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="hero-video w-full rounded-none md:rounded-xl"
+            className="hero-video w-full flex justify-center items-center"
           >
             <video id="heroVideo" ref={heroVideoRef} autoPlay muted playsInline preload="auto">
               <source src="/WhatsApp%20Video%202026-02-21%20at%2002.50.34.mp4" type="video/mp4" />
             </video>
           </motion.section>
 
-          {/* Mobile only: CTA bar under the banner (as in previous layout) */}
+          {/* Mobile only: CTA bar under the banner (inchangé) */}
           <div className="mt-2 md:hidden">
             <Link
               href="/shop"
@@ -467,7 +467,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
+      <section className="w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16 py-8 md:py-12">
         <div className="mx-auto mb-8 h-px w-full max-w-6xl md:mb-12" style={{ backgroundImage: GOLD_GRADIENT }} />
         <div className="mx-auto max-w-6xl">
           <motion.div
@@ -480,7 +480,7 @@ export default function Home() {
             <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">Comment ça marche</h2>
             <p className="mt-2 text-sm text-slate-600">Un parcours fluide en 4 étapes.</p>
           </motion.div>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-y-7 gap-x-5 md:grid-cols-2 lg:grid-cols-4 lg:gap-x-7 lg:gap-y-8">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (

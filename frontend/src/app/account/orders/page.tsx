@@ -117,7 +117,7 @@ export default function OrdersPage() {
                     <div className="h-20 w-20 overflow-hidden rounded-md bg-muted/30">
                       {img ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={img} alt={item?.name ?? "Produit"} className="h-full w-full object-cover" />
+                        <img src={img} alt={item?.name ?? "Produit"} className="h-full w-full object-cover" loading="lazy" />
                       ) : (
                         <div className="relative h-full w-full p-3">
                           <Image

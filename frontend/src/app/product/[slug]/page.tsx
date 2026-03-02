@@ -595,6 +595,7 @@ export default function ProductPage() {
                             src={img}
                             alt={p.images?.[0]?.alt ?? p.name}
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            loading="lazy"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG;
                             }}

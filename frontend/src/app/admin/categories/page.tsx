@@ -122,7 +122,7 @@ export default function AdminCategoriesPage() {
                   <TableCell>
                     {c.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.image_url} alt={c.name} className="h-12 w-12 rounded-md border object-cover" />
+                      <img src={c.image_url} alt={c.name} className="h-12 w-12 rounded-md border object-cover" loading="lazy" />
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-md border text-xs text-muted-foreground">
                         {iconLabel(c.icon ?? null).slice(0, 2)}

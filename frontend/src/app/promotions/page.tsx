@@ -108,6 +108,7 @@ function PromotionsClient() {
                         src={img}
                         alt={p.images?.[0]?.alt ?? p.name}
                         className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="relative h-full w-full p-6">
