@@ -1,3 +1,38 @@
+@keyframes mobileZoomIntro {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.08);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-mobileZoomIntro {
+  animation: mobileZoomIntro 2.5s ease-in-out;
+}
+/* Grille très subtile pour fond */
+.bg-grid {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.02),
+    rgba(0,0,0,0.02) 1px,
+    transparent 1px,
+    transparent 20px
+  ),
+  repeating-linear-gradient(
+    90deg,
+    rgba(0,0,0,0.02),
+    rgba(0,0,0,0.02) 1px,
+    transparent 1px,
+    transparent 20px
+  );
+}
 @keyframes fadeIn {
   from {
     opacity: 0;
