@@ -287,6 +287,15 @@ export function SiteHeader() {
                           <span className="text-base">Promotions</span>
                         </Link>
                       </SheetClose>
+                      <SheetClose asChild>
+                        <Link
+                          href="/import-service"
+                          className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                        >
+                          <Truck className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-base">Service d&apos;importation</span>
+                        </Link>
+                      </SheetClose>
                     </div>
                   </div>
 
@@ -358,6 +367,15 @@ export function SiteHeader() {
                           >
                             <Package className="h-5 w-5 text-muted-foreground" />
                             <span className="text-base">Mes commandes</span>
+                          </Link>
+                        </SheetClose>
+                        <SheetClose asChild>
+                          <Link
+                            href="/account/import-services"
+                            className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/30"
+                          >
+                            <Truck className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-base">Mes imports</span>
                           </Link>
                         </SheetClose>
 
@@ -485,6 +503,9 @@ export function SiteHeader() {
               <ShoppingCart className="h-4 w-4" />
               Produits
             </Link>
+            <Link href="/import-service" className={`${active("/import-service")} nav-link transition-colors duration-200 hover:text-accent`}>
+              Service import
+            </Link>
             {role === "admin" ? (
               <Link href="/admin" className={`${active("/admin")} nav-link transition-colors duration-200 hover:text-accent`}>
                 Admin
@@ -580,6 +601,14 @@ export function SiteHeader() {
                     onClick={() => setAccountOpen(false)}
                   >
                     Mes Adresses
+                  </Link>
+                  <Link
+                    href="/account/import-services"
+                    role="menuitem"
+                    className="block px-4 py-2 text-sm hover:bg-muted/30"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Mes services d&apos;importation
                   </Link>
                 </div>
                 <div className="h-px bg-border" />

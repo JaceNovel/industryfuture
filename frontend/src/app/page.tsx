@@ -227,9 +227,32 @@ export default function Home() {
   const popularItems: PopularItem[] = useMemo(() => {
     if (!sourceProducts.length) return [];
 
-    // Keep the selection "popular" by rotating within the best candidates.
     const candidates = sourceProducts.slice(0, Math.max(POPULAR_LIMIT, Math.min(POPULAR_CANDIDATES_LIMIT, sourceProducts.length)));
-    const scored = candidates.map((p, i) => {
+
+    const byCategory = new Map<string, Product[]>();
+    for (const p of candidates) {
+      const key = p.categories?.[0]?.slug ?? "uncategorized";
+      const arr = byCategory.get(key) ?? [];
+      arr.push(p);
+      byCategory.set(key, arr);
+    }
+
+    const diversified: Product[] = [];
+    const buckets = Array.from(byCategory.values());
+    let round = 0;
+    while (diversified.length < candidates.length) {
+      let added = false;
+      for (const bucket of buckets) {
+        if (round < bucket.length) {
+          diversified.push(bucket[round]);
+          added = true;
+        }
+      }
+      if (!added) break;
+      round += 1;
+    }
+
+    const scored = diversified.map((p, i) => {
       const key = productStableKey(p, i);
       const score = stableHash32(`${popularRotationKey}:${key}`);
       return { p, score };

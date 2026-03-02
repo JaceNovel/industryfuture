@@ -94,6 +94,15 @@ export default function ShopClient() {
     queryFn: () => apiGet<ProductsResponse>(`/api/products?${queryString}`),
   });
 
+  const hasSearch = search.trim().length > 0;
+  const noSearchResult = !productsQuery.isLoading && !productsQuery.isError && (productsQuery.data?.data?.length ?? 0) === 0 && hasSearch;
+
+  const similarProductsQuery = useQuery({
+    queryKey: ["products", "similar-fallback", search.trim().toLowerCase()],
+    queryFn: () => apiGet<ProductsResponse>("/api/products?sort=newest&perPage=8"),
+    enabled: noSearchResult,
+  });
+
   const applyToUrl = () => {
     setPage(1);
 
@@ -373,6 +382,59 @@ export default function ShopClient() {
               );
             })}
           </div>
+
+          {noSearchResult ? (
+            <div className="space-y-4 rounded-2xl border border-[#d4af37]/22 bg-white/80 p-4 sm:p-6">
+              <p className="text-sm text-slate-700">
+                Si vous ne trouvez pas un article, veuillez accéder au service d&apos;importation.
+              </p>
+              <Button asChild className="rounded-full border-none text-[#3f2e05]" style={{ backgroundImage: GOLD_GRADIENT }}>
+                <Link href="/import-service">Accéder au service d&apos;importation</Link>
+              </Button>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Articles similaires</h3>
+                <div className="products-grid mt-3 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {(similarProductsQuery.data?.data ?? []).slice(0, 8).map((p, idx) => {
+                    const img = p.images?.[0]?.url;
+                    const href = `/product/${p.slug}`;
+                    return (
+                      <motion.article
+                        key={`similar-${p.id ?? p.slug}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.25 }}
+                        transition={{ duration: 0.45, delay: Math.min(idx, 8) * 0.03, ease: [0.22, 1, 0.36, 1] }}
+                        className="product-card group relative overflow-hidden rounded-[20px] border border-[#d4af37]/22 bg-white shadow-[0_18px_42px_-34px_rgba(212,175,55,0.55)]"
+                      >
+                        <Link href={href} className="relative block">
+                          <div className="product-media aspect-[4/3] overflow-hidden rounded-t-[20px] bg-[#faf8f4]">
+                            {img ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={img} alt={p.images?.[0]?.alt ?? p.name} className="h-full w-full object-contain" loading="lazy" />
+                            ) : (
+                              <div className="relative h-full w-full p-6">
+                                <Image src={PLACEHOLDER_IMG} alt={p.name} fill sizes="100vw" className="object-contain opacity-95" />
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                        <div className="product-content relative space-y-2 p-4">
+                          <div className="product-title truncate text-base font-semibold text-slate-950">{p.name}</div>
+                          <div className="product-price text-sm font-medium text-[#8b6b16]">{formatPrice(p.price)}</div>
+                          <Button asChild variant="outline" className="w-full rounded-full border-[#d4af37]/30 bg-white/60 text-[#694d08]">
+                            <Link href={href}>Voir le produit</Link>
+                          </Button>
+                        </div>
+                      </motion.article>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
     </main>

@@ -77,6 +77,25 @@ export type Payment = {
   updated_at?: string;
 };
 
+export type ImportRequest = {
+  id: number;
+  user_id: number;
+  status: "pending" | "accepted" | "priced" | "awaiting_payment" | "paid" | "processing" | "shipped" | "delivered" | "rejected" | "canceled";
+  shipping_mode: "air" | "sea";
+  desired_delay_days?: number | null;
+  name: string;
+  description?: string | null;
+  photo_url?: string | null;
+  admin_price?: number | string | null;
+  payment_id?: number | null;
+  tracking_number?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
+  payment?: Payment | null;
+  user?: { id: number; name: string; email: string };
+};
+
 export type Address = {
   id: number;
   user_id: number;

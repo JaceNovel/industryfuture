@@ -73,6 +73,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const inPromotionsSection = pathname.startsWith("/admin/promotions");
   const inPromoCodesSection = pathname.startsWith("/admin/promo-codes");
   const inOffersSection = pathname.startsWith("/admin/offers");
+  const inImportServicesSection = pathname.startsWith("/admin/import-services");
   const inSettingsSection = pathname.startsWith("/admin/settings");
   const [productsOpen, setProductsOpen] = useState(inProductsSection);
   const [categoriesOpen, setCategoriesOpen] = useState(inCategoriesSection);
@@ -104,6 +105,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
   const items: NavItem[] = [
     { label: "Commandes", href: "/admin/orders", icon: <Package className="h-4 w-4" /> },
+    { label: "Service import", href: "/admin/import-services", icon: <ShoppingBag className="h-4 w-4" /> },
     { label: "Paramètres", href: "/admin/settings", icon: <Settings className="h-4 w-4" /> },
   ];
 
@@ -385,7 +387,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
         const disabled = !href;
         const className =
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm " +
-          (inSettingsSection && href === "/admin/settings"
+          ((inSettingsSection && href === "/admin/settings") || (inImportServicesSection && href === "/admin/import-services")
             ? "bg-muted/30 text-foreground"
             : disabled
             ? "cursor-not-allowed text-muted-foreground/50"

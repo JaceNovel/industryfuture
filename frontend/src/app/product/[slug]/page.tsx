@@ -94,6 +94,21 @@ function getTransportPrices(product: Product): { air: number | null; sea: number
   };
 }
 
+function getTransportDelayRanges(product: Product): { air: [number, number]; sea: [number, number] } {
+  const m = (product.metadata ?? {}) as Record<string, unknown>;
+  const d = (m.transport_delivery_delays ?? {}) as Record<string, unknown>;
+
+  const airMin = Number(d.air_min ?? 5);
+  const airMax = Number(d.air_max ?? 10);
+  const seaMin = Number(d.sea_min ?? 30);
+  const seaMax = Number(d.sea_max ?? 50);
+
+  return {
+    air: [Number.isFinite(airMin) ? airMin : 5, Number.isFinite(airMax) ? airMax : 10],
+    sea: [Number.isFinite(seaMin) ? seaMin : 30, Number.isFinite(seaMax) ? seaMax : 50],
+  };
+}
+
 export default function ProductPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
@@ -188,6 +203,11 @@ export default function ProductPage() {
   const hasTransportPrices = transportPrices.air != null || transportPrices.sea != null;
   const selectedTransportPrice = transportMode === "air" ? transportPrices.air : transportPrices.sea;
   const displayPrice = selectedTransportPrice ?? Number(product?.price ?? 0);
+  const transportDelays = useMemo(
+    () => (product ? getTransportDelayRanges(product) : { air: [5, 10] as [number, number], sea: [30, 50] as [number, number] }),
+    [product]
+  );
+  const selectedDelay = transportMode === "air" ? transportDelays.air : transportDelays.sea;
 
   function Stars({ value, size = 20 }: { value: number; size?: number }) {
     return (
@@ -235,11 +255,32 @@ export default function ProductPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imgSrc}
-                  alt={product.images?.[0]?.alt ?? product.name}
+                  alt={product.name}
                   className="h-full w-full object-contain"
                   onError={() => setImgSrc(PLACEHOLDER_IMG)}
                 />
               </div>
+              {(product.images?.length ?? 0) > 1 ? (
+                <div className="grid grid-cols-4 gap-2 px-3 pt-3 sm:px-4">
+                  {product.images?.slice(0, 4).map((im, idx) => {
+                    const selected = imgSrc === im.url;
+                    return (
+                      <button
+                        key={im.id ?? `${im.url}-${idx}`}
+                        type="button"
+                        onClick={() => setImgSrc(im.url)}
+                        className={
+                          "relative h-16 overflow-hidden rounded-lg border bg-muted/20 sm:h-20 " +
+                          (selected ? "border-chart-2" : "border-border")
+                        }
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={im.url} alt={im.alt ?? product.name} className="h-full w-full object-contain" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
               <div className="flex items-center gap-2 px-3 py-3 sm:px-4">
                 <a
                   href={FACEBOOK_URL}
@@ -376,7 +417,7 @@ export default function ProductPage() {
             <div className="rounded-xl border bg-muted/20 p-5 text-sm text-muted-foreground">
               <div>
                 <span className="text-foreground">Livraison estimée:</span>{" "}
-                {product.tag_delivery === "SUR_COMMANDE" ? "7-10 jours" : "1-3 jours"}
+                {selectedDelay[0]}-{selectedDelay[1]} jours ({transportMode === "air" ? "avion" : "bateau"})
               </div>
               <div className="mt-2">Vous serez notifié par email et SMS à l'arrivée de votre commande.</div>
             </div>

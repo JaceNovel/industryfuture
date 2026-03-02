@@ -94,6 +94,12 @@ export default function AccountPage() {
                 Mes adresses
               </Link>
             </Button>
+            <Button asChild variant="outline" className="w-full justify-start gap-3 rounded-2xl border-primary/20 bg-background/60 hover:bg-muted/20">
+              <Link href="/account/import-services">
+                <Package className="h-4 w-4" />
+                Mes services d&apos;importation
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

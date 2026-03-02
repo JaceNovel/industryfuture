@@ -13,6 +13,18 @@ class ProductController extends Controller
     {
         $query = Product::query()->with(['images', 'categories']);
 
+        $perPageRaw = $request->query('perPage', 24);
+        $perPage = 24;
+        if (is_numeric($perPageRaw)) {
+            $perPage = (int) $perPageRaw;
+        }
+        if ($perPage < 1) {
+            $perPage = 1;
+        }
+        if ($perPage > 100) {
+            $perPage = 100;
+        }
+
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -58,7 +70,7 @@ class ProductController extends Controller
             $query->orderByDesc('created_at');
         }
 
-        $products = $query->paginate(24);
+        $products = $query->paginate($perPage);
 
         return response()->json($products);
     }

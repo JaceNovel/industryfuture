@@ -32,10 +32,15 @@ export default function AdminProductEditPage() {
   const [price, setPrice] = useState("0");
   const [priceAir, setPriceAir] = useState("");
   const [priceSea, setPriceSea] = useState("");
+  const [delayAirMin, setDelayAirMin] = useState("5");
+  const [delayAirMax, setDelayAirMax] = useState("10");
+  const [delaySeaMin, setDelaySeaMin] = useState("30");
+  const [delaySeaMax, setDelaySeaMax] = useState("50");
+  const [tagDelivery, setTagDelivery] = useState<"PRET_A_ETRE_LIVRE" | "SUR_COMMANDE">("SUR_COMMANDE");
   const [categorySlug, setCategorySlug] = useState("");
   const [brand, setBrand] = useState("");
   const [tags, setTags] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   const categoryNameBySlug = useMemo(() => {
     const map = new Map<string, string>();
@@ -53,8 +58,14 @@ export default function AdminProductEditPage() {
 
     const meta = (p.metadata ?? {}) as Record<string, unknown>;
     const t = (meta.transport_prices ?? {}) as Record<string, unknown>;
+    const delays = (meta.transport_delivery_delays ?? {}) as Record<string, unknown>;
     setPriceAir(t.air != null ? String(t.air) : "");
     setPriceSea(t.sea != null ? String(t.sea) : "");
+    setDelayAirMin(delays.air_min != null ? String(delays.air_min) : "5");
+    setDelayAirMax(delays.air_max != null ? String(delays.air_max) : "10");
+    setDelaySeaMin(delays.sea_min != null ? String(delays.sea_min) : "30");
+    setDelaySeaMax(delays.sea_max != null ? String(delays.sea_max) : "50");
+    setTagDelivery((p.tag_delivery ?? "SUR_COMMANDE") as "PRET_A_ETRE_LIVRE" | "SUR_COMMANDE");
 
     setBrand(typeof meta.brand === "string" ? meta.brand : "");
     if (Array.isArray(meta.tags)) {
@@ -88,20 +99,36 @@ export default function AdminProductEditPage() {
         delete metadata.transport_prices;
       }
 
+      const parsedDelayAirMin = delayAirMin.trim() ? Number(delayAirMin) : 5;
+      const parsedDelayAirMax = delayAirMax.trim() ? Number(delayAirMax) : 10;
+      const parsedDelaySeaMin = delaySeaMin.trim() ? Number(delaySeaMin) : 30;
+      const parsedDelaySeaMax = delaySeaMax.trim() ? Number(delaySeaMax) : 50;
+      metadata.transport_delivery_delays = {
+        air_min: Number.isFinite(parsedDelayAirMin) ? parsedDelayAirMin : 5,
+        air_max: Number.isFinite(parsedDelayAirMax) ? parsedDelayAirMax : 10,
+        sea_min: Number.isFinite(parsedDelaySeaMin) ? parsedDelaySeaMin : 30,
+        sea_max: Number.isFinite(parsedDelaySeaMax) ? parsedDelaySeaMax : 50,
+      };
+
       await apiPatch(`/api/admin/products/${productId}`, {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(price || 0),
+        tag_delivery: tagDelivery,
+        delivery_delay_days: tagDelivery === "PRET_A_ETRE_LIVRE" ? 3 : 10,
         categories: categorySlug ? [categoryNameBySlug.get(categorySlug) ?? categorySlug] : [],
         metadata,
       });
 
-      if (imageFile) {
-        const formData = new FormData();
-        formData.append("image", imageFile);
-        formData.append("alt", name.trim());
-        formData.append("sort_order", "0");
-        await apiPost(`/api/admin/products/${productId}/images`, formData);
+      if (imageFiles.length) {
+        for (let i = 0; i < imageFiles.length; i++) {
+          const file = imageFiles[i];
+          const formData = new FormData();
+          formData.append("image", file);
+          formData.append("alt", `${name.trim()} ${i + 1}`);
+          formData.append("sort_order", String(i));
+          await apiPost(`/api/admin/products/${productId}/images`, formData);
+        }
       }
     },
     onSuccess: () => {
@@ -143,9 +170,14 @@ export default function AdminProductEditPage() {
             <CardTitle>Image du produit</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Label>Remplacer par une image locale</Label>
-            <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
-            {imageFile ? <p className="text-xs text-foreground/80">Fichier: {imageFile.name}</p> : null}
+            <Label>Ajouter 3-4 images (max 4)</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => setImageFiles(Array.from(e.target.files ?? []).slice(0, 4))}
+            />
+            {imageFiles.length ? <p className="text-xs text-foreground/80">{imageFiles.length} fichier(s) sélectionné(s).</p> : null}
           </CardContent>
         </Card>
       </div>
@@ -169,6 +201,25 @@ export default function AdminProductEditPage() {
               <div className="grid gap-2">
                 <Label>Prix bateau</Label>
                 <Input value={priceSea} onChange={(e) => setPriceSea(e.target.value)} inputMode="decimal" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Délai avion (min jours)</Label>
+                <Input value={delayAirMin} onChange={(e) => setDelayAirMin(e.target.value)} inputMode="numeric" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Délai avion (max jours)</Label>
+                <Input value={delayAirMax} onChange={(e) => setDelayAirMax(e.target.value)} inputMode="numeric" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Délai bateau (min jours)</Label>
+                <Input value={delaySeaMin} onChange={(e) => setDelaySeaMin(e.target.value)} inputMode="numeric" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Délai bateau (max jours)</Label>
+                <Input value={delaySeaMax} onChange={(e) => setDelaySeaMax(e.target.value)} inputMode="numeric" />
               </div>
             </div>
           </CardContent>
@@ -198,6 +249,18 @@ export default function AdminProductEditPage() {
             <div className="grid gap-2">
               <Label>Tags</Label>
               <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="tag1, tag2" />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Tag livraison</Label>
+              <select
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={tagDelivery}
+                onChange={(e) => setTagDelivery(e.target.value as "PRET_A_ETRE_LIVRE" | "SUR_COMMANDE")}
+              >
+                <option value="PRET_A_ETRE_LIVRE">PRÊT À ÊTRE LIVRÉ</option>
+                <option value="SUR_COMMANDE">SUR COMMANDE</option>
+              </select>
             </div>
 
             <div className="grid gap-2">

@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ImportRequestController;
+use App\Http\Controllers\Api\ImportRequestPaymentLinkController;
 use App\Http\Controllers\Api\PaymentLinkController;
 use App\Http\Controllers\Api\PaymentReturnStatusController;
 use App\Http\Controllers\Api\PaymentWebhookController;
@@ -26,6 +28,7 @@ use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\GroupedOfferController as AdminGroupedOfferController;
 use App\Http\Controllers\Api\Admin\WithdrawalRequestController as AdminWithdrawalRequestController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Api\Admin\ImportRequestController as AdminImportRequestController;
 
 Route::get('/health', HealthController::class);
 
@@ -74,6 +77,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 
+    Route::get('/import-requests', [ImportRequestController::class, 'index']);
+    Route::post('/import-requests', [ImportRequestController::class, 'store']);
+    Route::get('/import-requests/{importRequest}', [ImportRequestController::class, 'show']);
+    Route::post('/import-requests/{importRequest}/pay', [ImportRequestPaymentLinkController::class, 'store']);
+
     Route::prefix('admin')->middleware('role:admin')->group(function () {
         Route::apiResource('categories', AdminCategoryController::class);
         Route::apiResource('products', AdminProductController::class);
@@ -81,6 +89,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('coupons', AdminCouponController::class);
         Route::apiResource('grouped-offers', AdminGroupedOfferController::class);
         Route::apiResource('users', AdminUserController::class)->only(['index', 'store', 'show', 'destroy']);
+        Route::get('import-requests', [AdminImportRequestController::class, 'index']);
+        Route::get('import-requests/{importRequest}', [AdminImportRequestController::class, 'show']);
+        Route::patch('import-requests/{importRequest}', [AdminImportRequestController::class, 'update']);
         Route::apiResource('withdrawal-requests', AdminWithdrawalRequestController::class)->only(['index', 'store', 'show']);
         Route::get('notifications', [AdminNotificationController::class, 'index']);
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ImportRequest;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Payments\FedapayGateway;
@@ -76,6 +77,23 @@ class PaymentWebhookController extends Controller
             $payment->paid_at = now();
         }
         $payment->save();
+
+        $paymentMeta = (array) ($payment->metadata ?? []);
+        $importRequestId = (int) ($paymentMeta['import_request_id'] ?? 0);
+        if ($importRequestId > 0) {
+            $importRequest = ImportRequest::query()->whereKey($importRequestId)->first();
+            if ($importRequest) {
+                if ($newStatus === 'completed') {
+                    $importRequest->status = 'paid';
+                } elseif ($newStatus === 'failed' && in_array((string) $importRequest->status, ['awaiting_payment', 'priced'], true)) {
+                    $importRequest->status = 'canceled';
+                }
+                if (!$importRequest->payment_id) {
+                    $importRequest->payment_id = $payment->id;
+                }
+                $importRequest->save();
+            }
+        }
 
         $order = Order::find($payment->order_id);
         if ($order) {
