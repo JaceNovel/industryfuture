@@ -347,15 +347,6 @@ export default function Home() {
           </motion.section>
 
           {/* Mobile only: CTA bar under the banner (inchangé) */}
-          <div className="mt-2 flex justify-center md:hidden">
-            <a href="/shop" className="w-[98%] mx-auto">
-              <button
-                className="block md:hidden w-full bg-gray-900 text-white py-2.5 rounded-full text-base animate-mobileZoomIntro"
-              >
-                Explorer la boutique
-              </button>
-            </a>
-          </div>
             <div className="mt-2 flex justify-center md:hidden">
               <Link
                 href="/shop"
