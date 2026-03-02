@@ -224,35 +224,56 @@ export default function ShopClient() {
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
             <h1 className="text-[28px] font-semibold tracking-tight text-slate-950 md:text-4xl">Catalogue</h1>
-            <p className="text-sm text-slate-600">Recherche, tri et filtres — design premium.</p>
+            <p className="text-sm text-slate-600">Recherche, tri et filtres.</p>
           </div>
           <div className="hidden h-px w-full max-w-xs md:block" style={{ backgroundImage: GOLD_GRADIENT }} />
         </div>
 
         <div className="relative mt-5 flex flex-col gap-2 sm:flex-row">
-          <Input
-            placeholder="Rechercher…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") applyToUrl();
-            }}
-            className="h-11 w-full rounded-full border-[#d4af37]/25 bg-white/70 px-4 shadow-[0_12px_24px_-20px_rgba(212,175,55,0.55)] focus-visible:ring-[#d4af37]/20 sm:w-80"
-          />
-          <Button
-            onClick={applyToUrl}
-            className="h-11 w-full rounded-full border-none px-6 text-[#3f2e05] shadow-[0_16px_32px_-24px_rgba(212,175,55,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-22px_rgba(212,175,55,0.85)] sm:w-auto"
-            style={{ backgroundImage: GOLD_GRADIENT }}
-          >
-            <Search className="h-4 w-4" /> Rechercher
-          </Button>
+          <div className="relative w-full sm:w-80">
+            {/** Animation zoom du texte 'Recherche' et gestion du placeholder */}
+            {(() => {
+              const [animateZoom, setAnimateZoom] = useState(false);
+              useEffect(() => {
+                setAnimateZoom(true);
+                const timer = setTimeout(() => setAnimateZoom(false), 600);
+                return () => clearTimeout(timer);
+              }, []);
+              return (
+                <>
+                  <input
+                    type="text"
+                    placeholder={animateZoom ? "" : "Recherche"}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") applyToUrl();
+                    }}
+                    className="w-full rounded-lg border border-gray-400 bg-white px-4 py-2 pr-10 text-gray-700 focus:outline-none focus:border-gray-500"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-[#d4af37]" size={20} />
+                  {animateZoom && (
+                    <motion.span
+                      initial={{ scale: 1 }}
+                      animate={{ scale: [1, 1.4, 1] }}
+                      transition={{ duration: 0.6, ease: "easeInOut" }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    >
+                      Recherche
+                    </motion.span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
           <Sheet>
             <SheetTrigger asChild>
               <Button
                 variant="secondary"
-                className="h-11 w-full gap-2 rounded-full border border-[#d4af37]/25 bg-[#faf8f4] text-[#694d08] shadow-[0_12px_24px_-20px_rgba(212,175,55,0.55)] md:hidden"
+                className="h-11 w-full gap-2 rounded-full border-none text-white font-semibold md:hidden"
+                style={{ backgroundColor: '#d4af37' }}
               >
-                <Filter className="h-4 w-4" /> Filtres
+                <Filter className="h-5 w-5 text-white" /> Filtres
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[320px]">

@@ -375,11 +375,17 @@ export default function Home() {
                 href="/shop"
                 className="block w-[98%] mx-auto"
               >
-                <span
-                  className="block w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold text-center animate-mobileZoomIntro"
+                <motion.button
+                  className="w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold"
+                  initial={{ x: "-100%", scale: 1 }}
+                  animate={{ x: 0, scale: [1, 1.15, 1] }}
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 },
+                    scale: { times: [0, 0.3, 1], duration: 0.4, ease: "easeInOut", delay: 0.5 },
+                  }}
                 >
                   Explorer la boutique
-                </span>
+                </motion.button>
               </Link>
             </div>
         </section>
