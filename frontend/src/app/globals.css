@@ -1,3 +1,22 @@
+@keyframes pulseAttention {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0px rgba(255, 215, 0, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.9);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0px rgba(255, 215, 0, 0.7);
+  }
+}
+
+.animate-pulseAttention {
+  animation: pulseAttention 1s ease-in-out forwards;
+  animation-iteration-count: 3;
+}
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

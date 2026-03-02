@@ -334,12 +334,12 @@ export default function Home() {
   return (
     <main className="home-main w-full bg-white pb-14 md:pb-20">
       <div className="mobile-banner">
-        <section className="w-full bg-white px-4 pb-0 pt-0 sm:px-8 md:px-12 md:pb-10 md:pt-10">
+        <section className="w-screen rounded-none md:w-full md:rounded-xl md:max-w-7xl md:mx-auto bg-white pb-0 pt-0 md:px-12 md:pb-10 md:pt-10">
           <motion.section
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="hero-video"
+            className="hero-video w-full rounded-none md:rounded-xl"
           >
             <video id="heroVideo" ref={heroVideoRef} autoPlay muted playsInline preload="auto">
               <source src="/WhatsApp%20Video%202026-02-21%20at%2002.50.34.mp4" type="video/mp4" />
@@ -350,7 +350,7 @@ export default function Home() {
           <div className="mt-2 md:hidden">
             <Link
               href="/shop"
-              className="block w-full rounded-none border-y border-[#d4af37]/25 bg-[#faf8f4] py-2 text-center text-sm font-medium text-[#694d08]"
+              className="block w-full rounded-full px-6 py-3 mx-auto animate-pulseAttention md:animate-none border-y border-[#d4af37]/25 bg-[#faf8f4] text-center text-sm font-medium text-[#694d08]"
             >
               Explorer la boutique
             </Link>
@@ -429,7 +429,7 @@ export default function Home() {
       </section>
 
       {/* Mobile only: move the “Ready” section just after popular products */}
-      <ReadyToLevelUp className="ready-section w-full px-4 pt-6 sm:px-8 md:hidden" />
+      {/* Bloc "Prêt à passer au niveau supérieur" déplacé tout en bas */}
 
       <section className="why-choose-section w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-12">
         <div className="section-divider mx-auto mb-5 h-px w-full max-w-6xl md:mb-8" style={{ backgroundImage: GOLD_GRADIENT }} />
@@ -506,7 +506,8 @@ export default function Home() {
       </section>
 
       {/* Desktop only: keep the “Ready” section in its original position */}
-      <ReadyToLevelUp className="cta-section hidden w-full px-4 pt-10 sm:px-8 md:block md:px-12 md:pt-16" />
+      {/* Bloc "Prêt à passer au niveau supérieur" déplacé tout en bas */}
+      <ReadyToLevelUp className="w-full mb-20" />
     </main>
   );
 }
