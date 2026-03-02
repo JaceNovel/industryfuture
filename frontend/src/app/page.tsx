@@ -348,7 +348,7 @@ export default function Home() {
 
           {/* Mobile only: CTA bar under the banner (inchangé) */}
           <div className="mt-2 flex justify-center md:hidden">
-            <a href="/shop" className="w-[85%] mx-auto">
+            <a href="/shop" className="w-[92%] mx-auto">
               <button
                 className="block md:hidden w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold animate-mobileZoomIntro"
               >
