@@ -356,6 +356,18 @@ export default function Home() {
               </button>
             </a>
           </div>
+            <div className="mt-2 flex justify-center md:hidden">
+              <Link
+                href="/shop"
+                className="block w-[98%] mx-auto"
+              >
+                <span
+                  className="block w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold text-center animate-mobileZoomIntro"
+                >
+                  Explorer la boutique
+                </span>
+              </Link>
+            </div>
         </section>
       </div>
 
