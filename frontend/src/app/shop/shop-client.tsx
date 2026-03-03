@@ -26,8 +26,8 @@ type ProductsResponse = {
 };
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
-const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
-
+const BLUE_GRADIENT = "linear-gradient(135deg, #0f172a, #2c4061, #1b2a4f)";
+const REAL_GOLD_GRADIENT = "linear-gradient(135deg, #ffd700, #e6c200, #b8860b)";
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
   const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
@@ -195,13 +195,13 @@ export default function ShopClient() {
         </select>
       </div>
 
-      <Button
-        className="w-full rounded-full border-none text-[#3f2e05] shadow-[0_16px_32px_-24px_rgba(212,175,55,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-22px_rgba(212,175,55,0.85)]"
-        style={{ backgroundImage: GOLD_GRADIENT }}
-        onClick={applyToUrl}
-      >
-        Appliquer
-      </Button>
+   <Button
+  className="w-full rounded-full border-none text-white shadow-[0_16px_32px_-24px_rgba(212,175,55,0.8)] transition-all hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-22px_rgba(212,175,55,0.85)]"
+  style={{ backgroundImage: REAL_GOLD_GRADIENT }}
+  onClick={applyToUrl}
+>
+  Appliquer
+</Button>
     </div>
   );
 
@@ -211,22 +211,22 @@ export default function ShopClient() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative overflow-hidden rounded-[28px] border border-[#d4af37]/18 bg-white p-6 shadow-[0_26px_55px_-46px_rgba(212,175,55,0.55)] md:p-10"
+        className="relative overflow-hidden rounded-[28px] border border-slate-800/20 bg-white p-6 ..." 
       >
         <div
-          className="pointer-events-none absolute inset-0 opacity-80"
-          style={{
-            backgroundImage:
-              "radial-gradient(900px 300px at 20% 0%, rgba(212,175,55,0.16), transparent 60%), radial-gradient(700px 240px at 90% 20%, rgba(184,134,11,0.12), transparent 55%)",
-          }}
-        />
+  className="pointer-events-none absolute inset-0 opacity-80"
+  style={{
+    backgroundImage:
+      "radial-gradient(900px 300px at 20% 0%, rgba(30,41,59,0.25), transparent 60%), radial-gradient(700px 240px at 90% 20%, rgba(15,23,42,0.35), transparent 55%)",
+  }}
+/>
 
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
             <h1 className="text-[28px] font-semibold tracking-tight text-slate-950 md:text-4xl">Catalogue</h1>
             <p className="text-sm text-slate-600">Recherche, tri et filtres.</p>
           </div>
-          <div className="hidden h-px w-full max-w-xs md:block" style={{ backgroundImage: GOLD_GRADIENT }} />
+          <div className="hidden h-px w-full max-w-xs md:block" style={{ backgroundImage: BLUE_GRADIENT }} />
         </div>
 
         <div className="relative mt-5 flex flex-col gap-2 sm:flex-row">
@@ -276,7 +276,7 @@ export default function ShopClient() {
                 <Filter className="h-5 w-5 text-white" /> Filtres
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[320px]">
+            <SheetContent side="right" className="w-[320px] p-6">
               <SheetHeader>
                 <SheetTitle>Filtres</SheetTitle>
               </SheetHeader>
@@ -297,7 +297,7 @@ export default function ShopClient() {
         </aside>
 
         <section className="space-y-4">
-          <div className="h-px w-full" style={{ backgroundImage: GOLD_GRADIENT }} />
+          <div className="h-px w-full" style={{ backgroundImage: BLUE_GRADIENT }} />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {productsQuery.data?.total != null ? (
