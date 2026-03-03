@@ -26,7 +26,8 @@ type ProductsResponse = {
 };
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
-const BLUE_GRADIENT = "linear-gradient(135deg, #0f172a, #2c4061, #1b2a4f)";
+const BLUE_GRADIENT = "linear-gradient(135deg, #1e293b, #3b4c6b, #2c4061)";
+const GOLD_GRADIENT = "linear-gradient(135deg, #f9e79f, #d4af37, #b8860b)";
 const REAL_GOLD_GRADIENT = "linear-gradient(135deg, #ffd700, #e6c200, #b8860b)";
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
