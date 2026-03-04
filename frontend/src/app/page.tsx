@@ -33,8 +33,7 @@ type PopularItem = Product;
 
 const POPULAR_ROTATION_DAYS = 5;
 const POPULAR_ROTATION_MS = POPULAR_ROTATION_DAYS * 24 * 60 * 60 * 1000;
-const POPULAR_LIMIT = 8;
-const POPULAR_CANDIDATES_LIMIT = 40;
+
 
 function fiveDayWindowKey(ts: number) {
   return Math.floor(ts / POPULAR_ROTATION_MS);
@@ -242,46 +241,57 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
   }));
 }, [sourceProducts]);
 
-  const popularItems: PopularItem[] = useMemo(() => {
-    if (!sourceProducts.length) return [];
+  const mixedTousItems = useMemo(() => {
+  if (!sourceProducts.length) return [];
 
-    const candidates = sourceProducts.slice(0, Math.max(POPULAR_LIMIT, Math.min(POPULAR_CANDIDATES_LIMIT, sourceProducts.length)));
+  const base = sourceProducts.slice(0, 60);
 
-    const byCategory = new Map<string, Product[]>();
-    for (const p of candidates) {
-      const key = p.categories?.[0]?.slug ?? "uncategorized";
-      const arr = byCategory.get(key) ?? [];
-      arr.push(p);
-      byCategory.set(key, arr);
-    }
+  const byCategory = new Map<string, Product[]>();
+  for (const p of base) {
+    const key = p.categories?.[0]?.slug ?? "uncategorized";
+    const arr = byCategory.get(key) ?? [];
+    arr.push(p);
+    byCategory.set(key, arr);
+  }
 
-    const diversified: Product[] = [];
-    const buckets = Array.from(byCategory.values());
-    let round = 0;
-    while (diversified.length < candidates.length) {
-      let added = false;
-      for (const bucket of buckets) {
-        if (round < bucket.length) {
-          diversified.push(bucket[round]);
-          added = true;
-        }
+  const diversified: Product[] = [];
+  const buckets = Array.from(byCategory.values());
+
+  let round = 0;
+  while (diversified.length < base.length) {
+    let added = false;
+
+    for (const bucket of buckets) {
+      if (round < bucket.length) {
+        diversified.push(bucket[round]);
+        added = true;
       }
-      if (!added) break;
-      round += 1;
     }
 
-    const scored = diversified.map((p, i) => {
-      const key = productStableKey(p, i);
-      const score = stableHash32(`${popularRotationKey}:${key}`);
-      return { p, score };
-    });
-    scored.sort((a, b) => a.score - b.score);
-    return scored.slice(0, POPULAR_LIMIT).map((x) => x.p);
-  }, [popularRotationKey, sourceProducts]);
+    if (!added) break;
+    round++;
+  }
 
-  const popularHalf = Math.ceil(popularItems.length / 2);
-  const popularBandTop = popularItems.slice(0, popularHalf);
-  const popularBandBottom = popularItems.slice(popularHalf);
+  const scored = diversified.map((p, i) => {
+    const key = productStableKey(p, i);
+    const score = stableHash32(`${popularRotationKey}:${key}`);
+    return { p, score };
+  });
+
+  scored.sort((a, b) => a.score - b.score);
+
+  return scored.slice(0, 12).map((x) => x.p);
+}, [sourceProducts, popularRotationKey]);
+const displayedItems = useMemo(() => {
+  if (activeCategory === null) {
+    return mixedTousItems;
+  }
+
+  return sourceProducts
+    .filter((item) => item.categories?.[0]?.slug === activeCategory)
+    .slice(0, 12);
+}, [activeCategory, mixedTousItems, sourceProducts]);
+
 
   const renderPopularCard = (item: PopularItem, idx: number, keyPrefix: string) => {
     const href = `/product/${item.slug}`;
@@ -469,7 +479,9 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
             className="mb-5 flex flex-wrap items-center justify-between gap-4 md:mb-7"
           >
             <div>
-              <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">Produits populaires</h2>
+              <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">
+  Toutes nos pépites
+</h2>
               <p className="mt-1 text-sm text-slate-600">Sélection dynamique des meilleures références.</p>
             </div>
             <Button
@@ -496,7 +508,7 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
           {featuredQuery.isError && productsQuery.isError ? (
             <p className="text-sm text-slate-500">API indisponible.</p>
           ) : null}
-          {!featuredQuery.isLoading && !productsQuery.isLoading && popularItems.length === 0 ? (
+          {!featuredQuery.isLoading && !productsQuery.isLoading && displayedItems.length === 0 ? (
             <p className="text-sm text-slate-500">Aucun produit disponible.</p>
           ) : null}
 
@@ -505,15 +517,9 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
   ref={popularSectionRef}
   className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 md:hidden"
 >
-  {popularItems
-    .filter((item) =>
-      activeCategory
-        ? item.categories?.[0]?.slug === activeCategory
-        : true
-    )
-    .map((item, idx) =>
-      renderPopularCard(item, idx, `popular-mobile-${idx}`)
-    )}
+    {displayedItems.map((item, idx) =>
+  renderPopularCard(item, idx, "mobile")
+)}
 </div>
 
           {/* Desktop: keep existing behavior */}
@@ -524,7 +530,9 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="popular-products popular-products-container homepage-products-container hidden grid grid-cols-2 gap-4 sm:gap-6 md:grid md:grid-cols-3 lg:grid-cols-4"
           >
-            {popularItems.map((item, idx) => renderPopularCard(item, idx, "popular"))}
+            {displayedItems.map((item, idx) =>
+  renderPopularCard(item, idx, "popular")
+)}
           </motion.div>
         </div>
       </section>
