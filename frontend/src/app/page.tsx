@@ -391,7 +391,7 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
 {/* Mobile Category Bar */}
   </section>
 </div>
-<div className="sticky top-0 z-40 w-full bg-[#f8f8f8] border-b border-slate-300">
+<div className="sticky-categories w-full bg-[#f8f8f8] border-b border-slate-300 md:hidden">
   <div className="flex overflow-x-auto whitespace-nowrap">
 
     {/* Bouton Tous */}
