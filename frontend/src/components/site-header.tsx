@@ -218,7 +218,10 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className="site-header sticky top-0 z-20 border-b bg-background">
+    <header
+  id="main-header"
+  className="site-header sticky top-0 z-20 border-b bg-background transition-transform duration-300"
+>
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 md:px-6">
         {/* Left: brand + burger + primary links */}
         <div className="flex items-center gap-2">
@@ -232,7 +235,11 @@ export function SiteHeader() {
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[82vw] max-w-[380px] p-0" showCloseButton={false}>
+           <SheetContent
+  side="left"
+  className="z-[100] w-[82vw] max-w-[380px] p-0"
+  showCloseButton={false}
+>
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between gap-3 border-b px-4 py-4">
                   <div className="flex items-center gap-3">

@@ -99,7 +99,10 @@ function ReadyToLevelUp({ className }: { className?: string }) {
   );
 }
 
-export default function Home() {
+export default function Home() {<header
+  id="categories-bar"
+  className="site-header sticky top-0 z-20 border-b bg-background transition-transform duration-300"
+></header>
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const popularSectionRef = useRef<HTMLDivElement | null>(null);
   const [popularRotationKey, setPopularRotationKey] = useState(() =>
@@ -143,6 +146,7 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
     };
   }, []);
 
+  
   // Mobile-only scroll reveal activation on sections
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -202,8 +206,8 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
         });
       },
       { threshold: 0.6 }
+    
     );
-
     cards.forEach((card) => {
       card.style.transition = "transform 0.4s ease, opacity 0.4s ease";
       card.style.transform = "scale(0.92)";
@@ -401,7 +405,7 @@ const displayedItems = useMemo(() => {
 {/* Mobile Category Bar */}
   </section>
 </div>
-<div className="sticky-categories w-full bg-[#f8f8f8] border-b border-slate-300 md:hidden">
+<div id="categories-bar" className="sticky-categories w-full bg-[#f8f8f8] border-b border-slate-300 md:hidden">
   <div className="flex overflow-x-auto whitespace-nowrap">
 
     {/* Bouton Tous */}
