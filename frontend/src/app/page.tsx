@@ -102,9 +102,11 @@ function ReadyToLevelUp({ className }: { className?: string }) {
 
 export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const popularSectionRef = useRef<HTMLDivElement | null>(null);
   const [popularRotationKey, setPopularRotationKey] = useState(() =>
     typeof window === "undefined" ? 0 : fiveDayWindowKey(Date.now())
   );
+const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   // Keep the selection stable for 5 days, then rotate automatically.
   useEffect(() => {
@@ -224,6 +226,22 @@ export default function Home() {
   const featured = featuredQuery.data?.data ?? [];
   const fallbackProducts = productsQuery.data?.data ?? [];
   const sourceProducts = featured.length ? featured : fallbackProducts;
+  const categories = useMemo(() => {
+  const map = new Map<string, string>();
+
+  sourceProducts.forEach((p) => {
+    const cat = p.categories?.[0];
+    if (cat?.slug && cat?.name) {
+      map.set(cat.slug, cat.name);
+    }
+  });
+
+  return Array.from(map.entries()).map(([slug, name]) => ({
+    slug,
+    name,
+  }));
+}, [sourceProducts]);
+
   const popularItems: PopularItem[] = useMemo(() => {
     if (!sourceProducts.length) return [];
 
@@ -354,10 +372,11 @@ export default function Home() {
     },
   ];
 
-  return (
-    <main className="home-main w-full bg-white pb-14 md:pb-20">
+
+   return (
+ <main className="home-main w-full bg-white pb-14 md:pb-20">
       <div className="banner-pc">
-        <section className="w-full mt-0 rounded-t-none rounded-b-2xl overflow-hidden">
+        <section className="w-full overflow-hidden">
           <motion.section
             initial={{ opacity: 0, scale: 1.05 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -369,32 +388,73 @@ export default function Home() {
             </video>
           </motion.section>
 
-      {/* Mobile only: CTA bar under the banner */}
-<div className="mt-2 flex justify-center md:hidden">
-  <Link href="/shop" className="block w-[98%] mx-auto">
-  
+{/* Mobile Category Bar */}
+  </section>
+</div>
+<div className="sticky top-0 z-40 w-full bg-[#f8f8f8] border-b border-slate-300">
+  <div className="flex overflow-x-auto whitespace-nowrap">
 
-<motion.button
-  className="w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold flex justify-center items-center"
->
-  <motion.span
-    initial={{ scale: 1 }}
-    animate={{ scale: [1, 1.35, 1, 1.35, 1, 1.35, 1] }}
-    transition={{
-      duration: 1.5,
-      ease: "easeInOut",
-    }}
-    style={{ display: "inline-block" }}
-  >
-    Explorer la boutique
-  </motion.span>
-</motion.button>
-  
-              </Link>
-            </div>
-        </section>
-      </div>
-  
+    {/* Bouton Tous */}
+    <button
+      onClick={() => {
+        setActiveCategory(null);
+        popularSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }}
+      className="relative px-5 py-3 text-sm font-medium"
+    >
+      Tous
+
+      <span
+        className={`absolute left-0 bottom-0 h-[3px] w-full transition-transform duration-500 ease-out ${
+          activeCategory === null ? "scale-x-100" : "scale-x-0"
+        }`}
+        style={{
+          background:
+            "linear-gradient(90deg, #b8860b, #d4af37, #f1c40f, #d4af37, #b8860b)",
+          transformOrigin: "left",
+        }}
+      />
+    </button>
+
+    {/* Catégories dynamiques */}
+    {categories.map((cat) => {
+      const isActive = activeCategory === cat.slug;
+
+      return (
+        <button
+          key={cat.slug}
+          onClick={() => {
+            setActiveCategory(cat.slug);
+            popularSectionRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }}
+          className="relative px-5 py-3 text-sm font-medium"
+        >
+          {cat.name}
+
+          <span
+            className={`absolute left-0 bottom-0 h-[3px] w-full transition-transform duration-500 ease-out ${
+              isActive ? "scale-x-100" : "scale-x-0"
+            }`}
+            style={{
+              background:
+                "linear-gradient(90deg, #b8860b, #d4af37, #f1c40f, #d4af37, #b8860b)",
+              transformOrigin: "left",
+            }}
+          />
+        </button>
+      );
+    })}
+
+  </div>
+</div>
+         
+        
       <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
         <div className="section-divider section-divider-hero mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
       </section>
@@ -441,8 +501,19 @@ export default function Home() {
           ) : null}
 
           {/* Mobile: grille 2 colonnes comme le catalogue */}
-<div className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 md:hidden">
-  {popularItems.map((item, idx) => renderPopularCard(item, idx, `popular-mobile-${idx}`))}
+<div
+  ref={popularSectionRef}
+  className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 md:hidden"
+>
+  {popularItems
+    .filter((item) =>
+      activeCategory
+        ? item.categories?.[0]?.slug === activeCategory
+        : true
+    )
+    .map((item, idx) =>
+      renderPopularCard(item, idx, `popular-mobile-${idx}`)
+    )}
 </div>
 
           {/* Desktop: keep existing behavior */}
