@@ -369,29 +369,32 @@ export default function Home() {
             </video>
           </motion.section>
 
-          {/* Mobile only: CTA bar under the banner (inchangé) */}
-            <div className="mt-2 flex justify-center md:hidden">
-              <Link
-                href="/shop"
-                className="block w-[98%] mx-auto"
-              >
-                <motion.button
-                  className="w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold"
-                  initial={{ x: "-100%", scale: 1 }}
-                  animate={{ x: 0, scale: [1, 1.15, 1] }}
-                  transition={{
-                    x: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 },
-                    scale: { times: [0, 0.3, 1], duration: 0.4, ease: "easeInOut", delay: 0.5 },
-                  }}
-                >
-                  Explorer la boutique
-                
+      {/* Mobile only: CTA bar under the banner */}
+<div className="mt-2 flex justify-center md:hidden">
+  <Link href="/shop" className="block w-[98%] mx-auto">
+  
+
+<motion.button
+  className="w-full bg-gray-900 text-white py-2.5 rounded-full text-base font-semibold flex justify-center items-center"
+>
+  <motion.span
+    initial={{ scale: 1 }}
+    animate={{ scale: [1, 1.35, 1, 1.35, 1, 1.35, 1] }}
+    transition={{
+      duration: 1.5,
+      ease: "easeInOut",
+    }}
+    style={{ display: "inline-block" }}
+  >
+    Explorer la boutique
+  </motion.span>
 </motion.button>
+  
               </Link>
             </div>
         </section>
       </div>
-
+  
       <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
         <div className="section-divider section-divider-hero mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
       </section>
@@ -437,17 +440,10 @@ export default function Home() {
             <p className="text-sm text-slate-500">Aucun produit disponible.</p>
           ) : null}
 
-          {/* Mobile: two horizontal bands */}
-          <div className="space-y-4 md:hidden">
-            <div className="popular-products-container homepage-products-container">
-              {popularBandTop.map((item, idx) => renderPopularCard(item, idx, "popular-top"))}
-            </div>
-            {popularBandBottom.length ? (
-              <div className="popular-products-container homepage-products-container">
-                {popularBandBottom.map((item, idx) => renderPopularCard(item, idx, "popular-bottom"))}
-              </div>
-            ) : null}
-          </div>
+          {/* Mobile: grille 2 colonnes comme le catalogue */}
+<div className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 md:hidden">
+  {popularItems.map((item, idx) => renderPopularCard(item, idx, `popular-mobile-${idx}`))}
+</div>
 
           {/* Desktop: keep existing behavior */}
           <motion.div

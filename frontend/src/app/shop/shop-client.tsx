@@ -26,9 +26,9 @@ type ProductsResponse = {
 };
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
-const BLUE_GRADIENT = "linear-gradient(135deg, #1e293b, #3b4c6b, #2c4061)";
+const DARK_BLUE_GRADIENT = "radial-gradient(900px 300px at 20% 0%, rgb(46, 47, 49), transparent 60%), radial-gradient(700px 240px at 90% 20%, rgb(46, 47, 49), transparent 55%)";
 const GOLD_GRADIENT = "linear-gradient(135deg, #f9e79f, #d4af37, #b8860b)";
-const REAL_GOLD_GRADIENT = "linear-gradient(135deg, #ffd700, #e6c200, #b8860b)";
+const REAL_GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
   const formatted = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0);
@@ -209,25 +209,30 @@ export default function ShopClient() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-10">
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative overflow-hidden rounded-[28px] border border-slate-800/20 bg-white p-6 ..." 
-      >
+  initial={{ opacity: 0, y: 12 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+  className="relative overflow-hidden rounded-[28px] border border-slate-800/20 p-6 ..."
+>
         <div
-  className="pointer-events-none absolute inset-0 opacity-80"
+  className="pointer-events-none absolute inset-0"
   style={{
-    backgroundImage:
-      "radial-gradient(900px 300px at 20% 0%, rgba(30,41,59,0.25), transparent 60%), radial-gradient(700px 240px at 90% 20%, rgba(15,23,42,0.35), transparent 55%)",
+    backgroundColor: "#172953",
+    opacity: 0.9, 
   }}
 />
 
+
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
-            <h1 className="text-[28px] font-semibold tracking-tight text-slate-950 md:text-4xl">Catalogue</h1>
-            <p className="text-sm text-slate-600">Recherche, tri et filtres.</p>
+            <h1 className="text-[28px] font-semibold tracking-tight text-white md:text-4xl">
+  Catalogue
+</h1>
+           <p className="text-sm text-white">
+  Recherche, tri et filtres.
+</p>
           </div>
-          <div className="hidden h-px w-full max-w-xs md:block" style={{ backgroundImage: BLUE_GRADIENT }} />
+          <div className="hidden h-px w-full max-w-xs md:block" style={{ backgroundImage: DARK_BLUE_GRADIENT }} />
         </div>
 
         <div className="relative mt-5 flex flex-col gap-2 sm:flex-row">
@@ -298,7 +303,7 @@ export default function ShopClient() {
         </aside>
 
         <section className="space-y-4">
-          <div className="h-px w-full" style={{ backgroundImage: BLUE_GRADIENT }} />
+          <div className="h-px w-full" style={{ backgroundImage: DARK_BLUE_GRADIENT }} />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {productsQuery.data?.total != null ? (
