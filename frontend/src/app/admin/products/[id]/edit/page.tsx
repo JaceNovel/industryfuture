@@ -4,12 +4,24 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
-import type { Category, Product } from "@/lib/types";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import type { Category, Product, ProductImage } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+function mergeFiles(existing: File[], incoming: File[], max: number) {
+  const merged = [...existing];
+  for (const file of incoming) {
+    const duplicate = merged.some(
+      (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
+    );
+    if (!duplicate) merged.push(file);
+    if (merged.length >= max) break;
+  }
+  return merged;
+}
 
 export default function AdminProductEditPage() {
   const params = useParams<{ id: string }>();
@@ -41,12 +53,23 @@ export default function AdminProductEditPage() {
   const [brand, setBrand] = useState("");
   const [tags, setTags] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
+  const [imageNotice, setImageNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const categoryNameBySlug = useMemo(() => {
     const map = new Map<string, string>();
     (categoriesQuery.data ?? []).forEach((c) => map.set(c.slug, c.name));
     return map;
   }, [categoriesQuery.data]);
+
+  useEffect(() => {
+    const urls = imageFiles.map((file) => URL.createObjectURL(file));
+    setImagePreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imageFiles]);
 
   useEffect(() => {
     const p = productQuery.data;
@@ -75,7 +98,19 @@ export default function AdminProductEditPage() {
     } else {
       setTags("");
     }
+    setExistingImages(p.images ?? []);
   }, [productQuery.data]);
+
+  const deleteExistingImage = useMutation({
+    mutationFn: (imageId: number) => apiDelete<{ message: string }>(`/api/admin/product-images/${imageId}`),
+    onSuccess: (_, imageId) => {
+      setExistingImages((prev) => prev.filter((image) => image.id !== imageId));
+      setImageNotice({ type: "success", text: "Image supprimee avec succes." });
+    },
+    onError: (error) => {
+      setImageNotice({ type: "error", text: (error as Error).message || "Suppression impossible." });
+    },
+  });
 
   const updateProduct = useMutation({
     mutationFn: async () => {
@@ -175,9 +210,72 @@ export default function AdminProductEditPage() {
               type="file"
               accept="image/*"
               multiple
-              onChange={(e) => setImageFiles(Array.from(e.target.files ?? []).slice(0, 4))}
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                setImageFiles((prev) => mergeFiles(prev, files, 4));
+                e.currentTarget.value = "";
+              }}
             />
             {imageFiles.length ? <p className="text-xs text-foreground/80">{imageFiles.length} fichier(s) sélectionné(s).</p> : null}
+
+            {existingImages.length ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Images deja enregistrees</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {existingImages.map((image, index) => (
+                    <div key={image.id ?? `${image.url}-${index}`} className="rounded-md border p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={image.url} alt={image.alt ?? `Image ${index + 1}`} className="h-24 w-full rounded object-cover" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 w-full"
+                        disabled={typeof image.id !== "number" || deleteExistingImage.isPending}
+                        onClick={() => {
+                          if (typeof image.id !== "number") return;
+                          deleteExistingImage.mutate(image.id);
+                        }}
+                      >
+                        Supprimer
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {imagePreviews.length ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Nouvelles images a ajouter</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {imagePreviews.map((src, index) => (
+                    <div key={`${src}-${index}`} className="rounded-md border p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`Apercu ${index + 1}`} className="h-24 w-full rounded object-cover" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 w-full"
+                        onClick={() => {
+                          setImageFiles((prev) => prev.filter((_, i) => i !== index));
+                          setImageNotice({ type: "success", text: "Image retiree de la selection." });
+                        }}
+                      >
+                        Supprimer
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {imageNotice ? (
+              <p className={"text-xs " + (imageNotice.type === "success" ? "text-green-700" : "text-destructive")}>
+                {imageNotice.text}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>

@@ -141,22 +141,103 @@ export default function ProductPage() {
     }
   }, [product]);
 
+  const [tab, setTab] = useState<"reviews" | "write">("reviews");
+  const [limit, setLimit] = useState(5);
+
+  const reviewsQuery = useQuery({
+    queryKey: ["product-reviews", params.slug, limit],
+    queryFn: () => apiGet<ProductReviewsResponse>(`/api/products/${params.slug}/reviews?limit=${limit}`),
+    enabled: Boolean(params.slug),
+  });
+
+  const reviews = reviewsQuery.data?.data ?? [];
+  const reviewsMeta = reviewsQuery.data?.meta ?? { total: 0, average: 0, breakdown: {}, limit };
+
+  const [rating, setRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewName, setReviewName] = useState("");
+  const [reviewEmail, setReviewEmail] = useState("");
+
+  const createReview = useMutation({
+    mutationFn: () =>
+      apiPost<ProductReview>(`/api/products/${params.slug}/reviews`, {
+        rating,
+        title: reviewTitle,
+        body: reviewBody,
+        name: reviewName,
+        email: reviewEmail,
+      }),
+    onSuccess: async () => {
+      setRating(0);
+      setReviewTitle("");
+      setReviewBody("");
+      setReviewName("");
+      setReviewEmail("");
+      setTab("reviews");
+      setLimit(5);
+      await queryClient.invalidateQueries({ queryKey: ["product-reviews", params.slug] });
+    },
+  });
+
+  const addSimilarToCart = useMutation({
+    mutationFn: (productId: number) => apiPost("/api/cart", { product_id: productId, qty: 1 }),
+  });
+
+  const categorySlug = product?.categories?.[0]?.slug ?? "";
+  const similarQuery = useQuery({
+    queryKey: ["similar-products", categorySlug],
+    queryFn: () => apiGet<ProductsResponse>(`/api/products?category=${encodeURIComponent(categorySlug)}&sort=newest`),
+    enabled: Boolean(categorySlug),
+  });
+
+  const similarProducts = useMemo(() => {
+    const all = similarQuery.data?.data ?? [];
+    return all.filter((p) => p.slug !== product?.slug).slice(0, 4);
+  }, [similarQuery.data, product?.slug]);
+
   const transportPrices = useMemo(
     () => (product ? getTransportPrices(product) : { air: null, sea: null }),
     [product]
   );
-
+  const hasTransportPrices = transportPrices.air != null || transportPrices.sea != null;
   const selectedTransportPrice = transportMode === "air" ? transportPrices.air : transportPrices.sea;
-
-  // --- MODIFICATION PRINCIPALE ---
-  // On garde toujours le prix de base
   const basePrice = Number(product?.price ?? 0);
-
+  const displayPrice = selectedTransportPrice ?? basePrice;
   const transportDelays = useMemo(
     () => (product ? getTransportDelayRanges(product) : { air: [5, 10] as [number, number], sea: [30, 50] as [number, number] }),
     [product]
   );
   const selectedDelay = transportMode === "air" ? transportDelays.air : transportDelays.sea;
+
+  function Stars({ value, size = 20 }: { value: number; size?: number }) {
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }).map((_, i) => {
+          const active = i + 1 <= value;
+          return (
+            <Star
+              key={i}
+              className={
+                "" +
+                (active
+                  ? " text-chart-4 fill-chart-4"
+                  : " text-muted-foreground/40")
+              }
+              style={{ width: size, height: size }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  function formatReviewDate(d?: string) {
+    if (!d) return "";
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return "";
+    return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(dt);
+  }
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8">
@@ -169,64 +250,440 @@ export default function ProductPage() {
       {product ? (
         <div className="space-y-10 md:space-y-12">
           <div className="grid gap-6 md:gap-10 lg:grid-cols-[1.25fr_1fr]">
-            <Card className="bg-muted/20">
-              <CardContent className="p-0">
-                <div className="relative min-h-[240px] overflow-hidden rounded-xl border bg-muted/20 sm:min-h-[420px] lg:min-h-[520px]">
-                  <img
-                    src={imgSrc}
-                    alt={product.name}
-                    className="h-full w-full object-contain"
-                    onError={() => setImgSrc(PLACEHOLDER_IMG)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">{product.name}</h1>
-                {/* --- PRIX DE BASE FIXE --- */}
-                <div className="mt-3 text-xl font-semibold text-foreground sm:text-3xl">
-                  {formatPriceCFA(basePrice)}
-                </div>
-                {transportPrices.air != null || transportPrices.sea != null ? (
-                  <div className="mt-3 space-y-2">
-                    <div className="text-sm font-medium text-foreground">Mode de livraison</div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setTransportMode("air")}
-                        disabled={transportPrices.air == null}
-                        className={
-                          "rounded-md border px-3 py-1.5 text-sm " +
-                          (transportMode === "air"
-                            ? "border-chart-2 bg-chart-2/10 text-red-600"
-                            : "border-border bg-background text-muted-foreground") +
-                          (transportPrices.air == null ? " cursor-not-allowed opacity-50" : "")
-                        }
-                      >
-                        Avion {transportPrices.air != null ? `(${formatPriceCFA(transportPrices.air)})` : "(indisponible)"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTransportMode("sea")}
-                        disabled={transportPrices.sea == null}
-                        className={
-                          "rounded-md border px-3 py-1.5 text-sm " +
-                          (transportMode === "sea"
-                            ? "border-chart-2 bg-chart-2/10 text-red-600"
-                            : "border-border bg-background text-muted-foreground") +
-                          (transportPrices.sea == null ? " cursor-not-allowed opacity-50" : "")
-                        }
-                      >
-                        Bateau {transportPrices.sea != null ? `(${formatPriceCFA(transportPrices.sea)})` : "(indisponible)"}
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
+          <Card className="bg-muted/20">
+            <CardContent className="p-0">
+              <div className="relative min-h-[240px] overflow-hidden rounded-xl border bg-muted/20 sm:min-h-[420px] lg:min-h-[520px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imgSrc}
+                  alt={product.name}
+                  className="h-full w-full object-contain"
+                  onError={() => setImgSrc(PLACEHOLDER_IMG)}
+                />
               </div>
+              {(product.images?.length ?? 0) > 1 ? (
+                <div className="grid grid-cols-4 gap-2 px-3 pt-3 sm:px-4">
+                  {product.images?.slice(0, 4).map((im, idx) => {
+                    const selected = imgSrc === im.url;
+                    return (
+                      <button
+                        key={im.id ?? `${im.url}-${idx}`}
+                        type="button"
+                        onClick={() => setImgSrc(im.url)}
+                        className={
+                          "relative h-16 overflow-hidden rounded-lg border bg-muted/20 sm:h-20 " +
+                          (selected ? "border-chart-2" : "border-border")
+                        }
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={im.url} alt={im.alt ?? product.name} className="h-full w-full object-contain" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <div className="flex items-center gap-2 px-3 py-3 sm:px-4">
+                <a
+                  href={FACEBOOK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
+                >
+                  <FacebookLogo className="h-4 w-4" />
+                </a>
+                <a
+                  href={TIKTOK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="TikTok"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
+                >
+                  <TikTokLogo className="h-4 w-4" />
+                </a>
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-foreground hover:bg-muted"
+                >
+                  <InstagramLogo className="h-4 w-4" />
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">{product.name}</h1>
+              <div className="mt-3 text-xl font-semibold text-destructive sm:text-3xl">{formatPriceCFA(displayPrice)}</div>
+              <div className="mt-1 text-sm text-muted-foreground">Prix de base: {formatPriceCFA(basePrice)}</div>
+              {hasTransportPrices ? (
+                <div className="mt-3 space-y-2">
+                  <div className="text-sm font-medium text-foreground">Mode de livraison</div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTransportMode("air")}
+                      disabled={transportPrices.air == null}
+                      className={
+                        "rounded-md border px-3 py-1.5 text-sm " +
+                        (transportMode === "air"
+                          ? "border-chart-2 bg-chart-2/10 text-foreground"
+                          : "border-border bg-background text-muted-foreground") +
+                        (transportPrices.air == null ? " cursor-not-allowed opacity-50" : "")
+                      }
+                    >
+                      Avion {transportPrices.air != null ? `(${formatPriceCFA(transportPrices.air)})` : "(indisponible)"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTransportMode("sea")}
+                      disabled={transportPrices.sea == null}
+                      className={
+                        "rounded-md border px-3 py-1.5 text-sm " +
+                        (transportMode === "sea"
+                          ? "border-chart-2 bg-chart-2/10 text-foreground"
+                          : "border-border bg-background text-muted-foreground") +
+                        (transportPrices.sea == null ? " cursor-not-allowed opacity-50" : "")
+                      }
+                    >
+                      Bateau {transportPrices.sea != null ? `(${formatPriceCFA(transportPrices.sea)})` : "(indisponible)"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {product.description ? (
+              <p className="text-base leading-relaxed text-foreground/90">{product.description}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Description non disponible.</p>
+            )}
+
+            <div>
+              <div className="text-2xl font-semibold tracking-tight">Informations</div>
+              <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                <div className="text-foreground">Catégorie</div>
+                <div className="text-foreground">
+                  {product.categories?.[0]?.name ?? product.categories?.[0]?.slug ?? "N/A"}
+                </div>
+
+                <div className="text-foreground">Marque</div>
+                <div className="text-foreground">{getBrand(product)}</div>
+
+                <div className="text-foreground">Stock</div>
+                <div className="text-foreground">{`${product.stock ?? 0} unités`}</div>
+
+                <div className="text-foreground">Tags</div>
+                <div className="truncate text-foreground" title={getTags(product)}>
+                  {getTags(product) || "—"}
+                </div>
+              </div>
+
+              {product.tag_delivery ? (
+                <div className="mt-5">
+                  <Badge variant="secondary">
+                    {product.tag_delivery === "PRET_A_ETRE_LIVRE" ? "PRÊT À ÊTRE LIVRÉ" : "SUR COMMANDE"}
+                  </Badge>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <Button
+                variant="destructive"
+                className="h-11"
+                onClick={async (e) => {
+                  flyToCart(e.currentTarget as HTMLElement);
+                  await apiPost("/api/cart", { product_id: product.id, qty: 1 });
+                  router.push("/cart");
+                }}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Ajouter au panier
+              </Button>
+              <Button
+                className="h-11 bg-chart-2 text-white hover:bg-chart-2/90 focus-visible:ring-chart-2/30"
+                onClick={async () => {
+                  await apiPost("/api/cart", { product_id: product.id, qty: 1 });
+                  router.push("/checkout");
+                }}
+              >
+                <Zap className="h-4 w-4" />
+                Acheter maintenant
+              </Button>
+            </div>
+
+            <div className="rounded-xl border bg-muted/20 p-5 text-sm text-muted-foreground">
+              <div>
+                <span className="text-foreground">Livraison estimée:</span>{" "}
+                {selectedDelay[0]}-{selectedDelay[1]} jours ({transportMode === "air" ? "avion" : "bateau"})
+              </div>
+              <div className="mt-2">Vous serez notifié par email et SMS à l'arrivée de votre commande.</div>
             </div>
           </div>
+          </div>
+
+          <div className="pt-2">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "reviews" | "write")} className="w-full">
+              <TabsList className="w-fit">
+                <TabsTrigger value="reviews">Avis clients ({reviewsMeta.total})</TabsTrigger>
+                <TabsTrigger value="write">Laisser un avis</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="reviews" className="mt-6">
+                <Card className="bg-muted/20">
+                  <CardContent className="p-6">
+                    <div className="grid gap-8 md:grid-cols-[260px_1fr]">
+                      <div>
+                        <div className="text-5xl font-semibold text-destructive">
+                          {Number(reviewsMeta.average || 0).toFixed(1)}
+                        </div>
+                        <div className="mt-2">
+                          <Stars value={Math.round(reviewsMeta.average || 0)} size={22} />
+                        </div>
+                        <div className="mt-2 text-sm text-muted-foreground">Basé sur {reviewsMeta.total} avis</div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {[5, 4, 3, 2, 1].map((r) => {
+                          const count = Number((reviewsMeta.breakdown as any)?.[r] ?? 0);
+                          const pct = reviewsMeta.total ? Math.round((count / reviewsMeta.total) * 100) : 0;
+                          return (
+                            <div key={r} className="grid grid-cols-[60px_1fr_30px] items-center gap-4 text-sm">
+                              <div className="text-muted-foreground">{r} étoiles</div>
+                              <div className="h-2 rounded-full bg-muted">
+                                <div className="h-2 rounded-full bg-chart-4" style={{ width: `${pct}%` }} />
+                              </div>
+                              <div className="text-right text-muted-foreground">{count}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="mt-8 space-y-8">
+                  {reviewsQuery.isLoading ? (
+                    <div className="text-sm text-muted-foreground">Chargement…</div>
+                  ) : reviews.length ? (
+                    reviews.map((rev) => (
+                      <div key={rev.id} className="border-b pb-8 last:border-b-0 last:pb-0">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
+                              {(rev.name || "?").slice(0, 1).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold text-foreground">{rev.name}</div>
+                              <div className="text-sm text-muted-foreground">{formatReviewDate(rev.created_at)}</div>
+                            </div>
+                          </div>
+                          <Stars value={rev.rating} size={18} />
+                        </div>
+
+                        <div className="mt-4 text-base font-semibold">{rev.title}</div>
+                        <div className="mt-2 text-sm leading-relaxed text-muted-foreground">{rev.body}</div>
+
+                        <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                          <div>Cet avis vous a-t-il été utile ?</div>
+                          <Button variant="outline" size="sm" disabled>
+                            <ThumbsUp className="h-4 w-4" /> Oui ({rev.helpful_yes ?? 0})
+                          </Button>
+                          <Button variant="outline" size="sm" disabled>
+                            <ThumbsDown className="h-4 w-4" /> Non ({rev.helpful_no ?? 0})
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">Aucun avis pour le moment.</div>
+                  )}
+
+                  {reviewsMeta.total > limit ? (
+                    <div className="pt-2">
+                      <Button variant="outline" onClick={() => setLimit((v) => v + 5)}>
+                        Voir plus
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="write" className="mt-6">
+                <Card className="bg-muted/20">
+                  <CardContent className="p-6">
+                    <div className="text-2xl font-semibold tracking-tight">
+                      Donnez votre avis sur {product.name}
+                    </div>
+
+                    <div className="mt-6 space-y-6">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Votre note</div>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => {
+                            const v = i + 1;
+                            const active = v <= rating;
+                            return (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setRating(v)}
+                                className="rounded p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                                aria-label={`${v} étoiles`}
+                              >
+                                <Star className={active ? "h-8 w-8 text-chart-4 fill-chart-4" : "h-8 w-8 text-muted-foreground/40"} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Titre de votre avis</Label>
+                        <Input
+                          placeholder="Résumez votre expérience en une phrase"
+                          value={reviewTitle}
+                          onChange={(e) => setReviewTitle(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Votre avis</Label>
+                        <Textarea
+                          placeholder="Partagez votre expérience avec ce produit..."
+                          value={reviewBody}
+                          onChange={(e) => setReviewBody(e.target.value)}
+                          className="min-h-[160px]"
+                        />
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Votre nom</Label>
+                          <Input placeholder="Prénom et nom" value={reviewName} onChange={(e) => setReviewName(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Votre email</Label>
+                          <Input
+                            placeholder="Votre email ne sera pas publié"
+                            value={reviewEmail}
+                            onChange={(e) => setReviewEmail(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-sm text-muted-foreground">
+                        En soumettant cet avis, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+                      </div>
+
+                      {createReview.isError ? (
+                        <div className="text-sm text-destructive">{(createReview.error as Error).message}</div>
+                      ) : null}
+
+                      <Button
+                        variant="destructive"
+                        className="h-11"
+                        onClick={() => createReview.mutate()}
+                        disabled={
+                          createReview.isPending ||
+                          rating < 1 ||
+                          !reviewTitle.trim() ||
+                          !reviewBody.trim() ||
+                          !reviewName.trim() ||
+                          !reviewEmail.trim()
+                        }
+                      >
+                        Publier mon avis
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <section className="pt-6">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Produits similaires</h2>
+              {categorySlug ? (
+                <Link
+                  href={`/shop?category=${encodeURIComponent(categorySlug)}`}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-destructive hover:underline"
+                >
+                  Voir plus <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : null}
+            </div>
+
+            <div className="products-grid mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-6 lg:grid-cols-4">
+              {similarQuery.isLoading ? (
+                <div className="text-sm text-muted-foreground">Chargement…</div>
+              ) : similarProducts.length ? (
+                similarProducts.map((p) => {
+                  const img = p.images?.[0]?.url;
+                  return (
+                    <Link
+                      key={p.id ?? p.slug}
+                      href={`/product/${p.slug}`}
+                      className="product-card group overflow-hidden rounded-xl border bg-background hover:bg-muted/10"
+                    >
+                      <div className="product-media aspect-[4/5] overflow-hidden rounded-t-xl bg-muted/20">
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={img}
+                            alt={p.images?.[0]?.alt ?? p.name}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = PLACEHOLDER_IMG;
+                            }}
+                          />
+                        ) : (
+                          <div className="relative h-full w-full p-3 sm:p-6">
+                            <Image
+                              src={PLACEHOLDER_IMG}
+                              alt={p.name}
+                              fill
+                              sizes="(min-width: 1024px) 25vw, 50vw"
+                              className="object-contain opacity-90 transition-transform duration-300 group-hover:scale-[1.02]"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="product-content p-4 sm:p-5">
+                        <div className="product-title text-base font-medium text-foreground">{p.name}</div>
+                        <div className="mt-4 flex items-end justify-between gap-3">
+                          <div className="product-price text-lg font-semibold text-destructive">{formatPriceCFA(p.price)}</div>
+                          <button
+                            type="button"
+                            aria-label="Ajouter au panier"
+                            className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                            disabled={addSimilarToCart.isPending || !p.id}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!p.id) return;
+                              flyToCart(e.currentTarget);
+                              await addSimilarToCart.mutateAsync(p.id as number);
+                            }}
+                          >
+                            <ShoppingCart className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })
+              ) : (
+                <div className="text-sm text-muted-foreground">Aucun produit similaire.</div>
+              )}
+            </div>
+          </section>
         </div>
       ) : null}
     </main>

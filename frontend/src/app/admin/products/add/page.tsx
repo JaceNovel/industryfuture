@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { apiGet, apiPost } from "@/lib/api";
@@ -23,6 +23,18 @@ type CreateProductPayload = {
   metadata?: Record<string, unknown>;
 };
 
+function mergeFiles(existing: File[], incoming: File[], max: number) {
+  const merged = [...existing];
+  for (const file of incoming) {
+    const duplicate = merged.some(
+      (f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified
+    );
+    if (!duplicate) merged.push(file);
+    if (merged.length >= max) break;
+  }
+  return merged;
+}
+
 export default function AdminProductsAddPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -39,6 +51,16 @@ export default function AdminProductsAddPage() {
   const [brand, setBrand] = useState("");
   const [tags, setTags] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageNotice, setImageNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    const urls = imageFiles.map((file) => URL.createObjectURL(file));
+    setImagePreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imageFiles]);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -151,12 +173,40 @@ export default function AdminProductsAddPage() {
               accept="image/*"
               multiple
               onChange={(e) => {
-                const files = Array.from(e.target.files ?? []).slice(0, 4);
-                setImageFiles(files);
+                const files = Array.from(e.target.files ?? []);
+                setImageFiles((prev) => mergeFiles(prev, files, 4));
+                e.currentTarget.value = "";
               }}
             />
             <p className="text-xs text-muted-foreground">Formats acceptés: JPG, JPEG, PNG, WEBP (max 4MB).</p>
             {imageFiles.length ? <p className="text-xs text-foreground/80">{imageFiles.length} fichier(s) sélectionné(s).</p> : null}
+            {imagePreviews.length ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {imagePreviews.map((src, index) => (
+                  <div key={`${src}-${index}`} className="rounded-md border p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt={`Apercu ${index + 1}`} className="h-24 w-full rounded object-cover" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={() => {
+                        setImageFiles((prev) => prev.filter((_, i) => i !== index));
+                        setImageNotice({ type: "success", text: "Image retiree de la selection." });
+                      }}
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {imageNotice ? (
+              <p className={"text-xs " + (imageNotice.type === "success" ? "text-green-700" : "text-destructive")}>
+                {imageNotice.text}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>

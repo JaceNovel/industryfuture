@@ -9,6 +9,16 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
+    private function applyStableOrder($query, string $column, string $direction = 'desc'): void
+    {
+        if ($direction === 'asc') {
+            $query->orderBy($column)->orderBy('id');
+            return;
+        }
+
+        $query->orderByDesc($column)->orderByDesc('id');
+    }
+
     public function index(Request $request)
     {
         $query = Product::query()->with(['images', 'categories']);
@@ -59,15 +69,17 @@ class ProductController extends Controller
 
         $sort = $request->query('sort', 'newest');
         if ($sort === 'price_asc') {
-            $query->orderBy('price');
+            $this->applyStableOrder($query, 'price', 'asc');
         } elseif ($sort === 'price_desc') {
-            $query->orderByDesc('price');
+            $this->applyStableOrder($query, 'price', 'desc');
         } elseif ($sort === 'featured') {
-            $query->orderByDesc('featured')->orderByDesc('created_at');
+            $query->orderByDesc('featured');
+            $this->applyStableOrder($query, 'created_at', 'desc');
         } elseif ($sort === 'promo') {
-            $query->orderByDesc('is_promo')->orderByDesc('created_at');
+            $query->orderByDesc('is_promo');
+            $this->applyStableOrder($query, 'created_at', 'desc');
         } else {
-            $query->orderByDesc('created_at');
+            $this->applyStableOrder($query, 'created_at', 'desc');
         }
 
         $products = $query->paginate($perPage);
