@@ -42,6 +42,8 @@ export default function AdminProductEditPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("0");
+  const [shippingFee, setShippingFee] = useState("0");
+  const [minShippingQty, setMinShippingQty] = useState("");
   const [priceAir, setPriceAir] = useState("");
   const [priceSea, setPriceSea] = useState("");
   const [delayAirMin, setDelayAirMin] = useState("5");
@@ -77,6 +79,8 @@ export default function AdminProductEditPage() {
     setName(p.name ?? "");
     setDescription(p.description ?? "");
     setPrice(String(Number(p.price ?? 0)));
+    setShippingFee(String(Number(p.shipping_fee ?? 0)));
+    setMinShippingQty(p.min_shipping_qty != null ? String(p.min_shipping_qty) : "");
     setCategorySlug(p.categories?.[0]?.slug ?? "");
 
     const meta = (p.metadata ?? {}) as Record<string, unknown>;
@@ -149,6 +153,8 @@ export default function AdminProductEditPage() {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(price || 0),
+        shipping_fee: Number(shippingFee || 0),
+        min_shipping_qty: minShippingQty.trim() ? Number(minShippingQty) : null,
         tag_delivery: tagDelivery,
         delivery_delay_days: tagDelivery === "PRET_A_ETRE_LIVRE" ? 3 : 10,
         categories: categorySlug ? [categoryNameBySlug.get(categorySlug) ?? categorySlug] : [],
@@ -289,6 +295,19 @@ export default function AdminProductEditPage() {
             <div className="grid gap-2">
               <Label>Prix de base *</Label>
               <Input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Frais de livraison (FCFA)</Label>
+                <Input value={shippingFee} onChange={(e) => setShippingFee(e.target.value)} inputMode="decimal" placeholder="Ex: 1000" />
+                <p className="text-xs text-muted-foreground">Appliqué une seule fois par article (pas multiplié par quantité).</p>
+              </div>
+              <div className="grid gap-2">
+                <Label>Quantité minimum</Label>
+                <Input value={minShippingQty} onChange={(e) => setMinShippingQty(e.target.value)} inputMode="numeric" placeholder="Ex: 10" />
+                <p className="text-xs text-muted-foreground">Logique interne: expédition après atteinte de cette quantité.</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

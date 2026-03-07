@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
@@ -13,6 +14,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 
 const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
+const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
 
 function lineTotal(price: unknown, qty: number) {
   return Number(price ?? 0) * qty;
@@ -102,10 +104,31 @@ export default function CartPage() {
               className="rounded-[20px] border border-[#d4af37]/18 bg-white/70 shadow-[0_18px_42px_-34px_rgba(212,175,55,0.55)] backdrop-blur"
             >
               <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{it.product?.name ?? `Produit #${it.product_id}`}</div>
-                  <div className="text-sm text-slate-600">
-                    {formatMoneyFCFA(it.product?.price ?? 0)} / unité
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[#d4af37]/20 bg-[#faf8f4]">
+                    {it.product?.images?.[0]?.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={it.product.images[0].url}
+                        alt={it.product.images?.[0]?.alt ?? it.product?.name ?? `Produit #${it.product_id}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <Image
+                        src={PLACEHOLDER_IMG}
+                        alt={it.product?.name ?? `Produit #${it.product_id}`}
+                        fill
+                        sizes="48px"
+                        className="object-contain p-1"
+                      />
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="line-clamp-2 text-sm font-medium sm:text-base">{it.product?.name ?? `Produit #${it.product_id}`}</div>
+                    <div className="text-sm text-slate-700">{formatMoneyFCFA(it.product?.price ?? 0)}</div>
+                    <div className="text-xs text-slate-500">Quantite : {it.qty}</div>
                   </div>
                 </div>
                 <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">

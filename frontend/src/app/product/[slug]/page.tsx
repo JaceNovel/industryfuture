@@ -376,6 +376,9 @@ export default function ProductPage() {
                 <div className="text-foreground">Stock</div>
                 <div className="text-foreground">{`${product.stock ?? 0} unités`}</div>
 
+                <div className="text-foreground">Quantité Min:</div>
+                <div className="text-foreground">{product.min_shipping_qty != null ? `${product.min_shipping_qty}` : "—"}</div>
+
                 <div className="text-foreground">Tags</div>
                 <div className="truncate text-foreground" title={getTags(product)}>
                   {getTags(product) || "—"}

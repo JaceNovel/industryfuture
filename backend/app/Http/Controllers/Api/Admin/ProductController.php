@@ -16,7 +16,9 @@ class ProductController extends Controller
         if ($search = $request->query('search')) {
             $query->where('name', 'like', "%{$search}%");
         }
-        return response()->json($query->paginate(50));
+
+        // Admin expects a full list (no hard pagination cap).
+        return response()->json(['data' => $query->get()]);
     }
 
     public function store(Request $request)
@@ -27,6 +29,8 @@ class ProductController extends Controller
             'description' => ['nullable', 'string'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'shipping_fee' => ['nullable', 'numeric', 'min:0'],
+            'min_shipping_qty' => ['nullable', 'integer', 'min:1'],
             'stock' => ['nullable', 'integer', 'min:0'],
             'status' => ['nullable', 'in:draft,active'],
             'tag_delivery' => ['nullable', 'in:PRET_A_ETRE_LIVRE,SUR_COMMANDE'],
@@ -48,6 +52,8 @@ class ProductController extends Controller
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'] ?? 0,
             'compare_at_price' => $validated['compare_at_price'] ?? null,
+            'shipping_fee' => $validated['shipping_fee'] ?? 0,
+            'min_shipping_qty' => $validated['min_shipping_qty'] ?? null,
             'stock' => $validated['stock'] ?? 999,
             'status' => $validated['status'] ?? 'draft',
             'tag_delivery' => $validated['tag_delivery'] ?? 'SUR_COMMANDE',
@@ -81,6 +87,8 @@ class ProductController extends Controller
             'description' => ['nullable', 'string'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'shipping_fee' => ['nullable', 'numeric', 'min:0'],
+            'min_shipping_qty' => ['nullable', 'integer', 'min:1'],
             'stock' => ['nullable', 'integer', 'min:0'],
             'status' => ['nullable', 'in:draft,active'],
             'tag_delivery' => ['nullable', 'in:PRET_A_ETRE_LIVRE,SUR_COMMANDE'],

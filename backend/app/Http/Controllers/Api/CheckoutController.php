@@ -90,10 +90,15 @@ class CheckoutController extends Controller
             }
 
             $subtotal = 0;
+            $shippingTotal = 0;
             $tagDelivery = 'SUR_COMMANDE';
 
             foreach ($cart->items as $item) {
                 $subtotal += ((float) $item->product->price) * (int) $item->qty;
+
+                // Shipping fee is applied once per cart line (per product), not per unit.
+                $shippingTotal += (float) ($item->product->shipping_fee ?? 0);
+
                 if ($item->product->tag_delivery === 'PRET_A_ETRE_LIVRE') {
                     $tagDelivery = 'PRET_A_ETRE_LIVRE';
                 }
@@ -106,8 +111,8 @@ class CheckoutController extends Controller
                 'shipping_address_id' => $addressId,
                 'subtotal' => $subtotal,
                 'discount_total' => 0,
-                'shipping_total' => 0,
-                'total' => $subtotal,
+                'shipping_total' => $shippingTotal,
+                'total' => $subtotal + $shippingTotal,
                 'metadata' => [
                     'tracking_number' => strtoupper(Str::random(8)) . '-' . strtoupper(Str::random(6)),
                     'order_number' => 'LKaZJIMp' . strtoupper(Str::random(14)),

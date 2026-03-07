@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet } from "@/lib/api";
-import type { Product } from "@/lib/types";
+import type { Category, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -31,11 +31,14 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 type PopularItem = Product;
 
-const POPULAR_ROTATION_DAYS = 5;
+const POPULAR_ROTATION_DAYS = 2;
 const POPULAR_ROTATION_MS = POPULAR_ROTATION_DAYS * 24 * 60 * 60 * 1000;
+const MIXED_CATEGORY_KEY = "all-gems";
+const MIXED_CATEGORY_LABEL = "Toutes nos pepites";
+const MIXED_CATEGORY_LIMIT = 50;
 
 
-function fiveDayWindowKey(ts: number) {
+function rotationWindowKey(ts: number) {
   return Math.floor(ts / POPULAR_ROTATION_MS);
 }
 
@@ -99,22 +102,26 @@ function ReadyToLevelUp({ className }: { className?: string }) {
   );
 }
 
-export default function Home() {<header
-  id="categories-bar"
-  className="site-header sticky top-0 z-20 border-b bg-background transition-transform duration-300"
-></header>
+export default function Home() {
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const popularSectionRef = useRef<HTMLDivElement | null>(null);
+  const categoriesScrollRef = useRef<HTMLDivElement | null>(null);
   const [popularRotationKey, setPopularRotationKey] = useState(() =>
-    typeof window === "undefined" ? 0 : fiveDayWindowKey(Date.now())
+    typeof window === "undefined" ? 0 : rotationWindowKey(Date.now())
   );
-const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>(MIXED_CATEGORY_KEY);
+  const [showCategoriesArrow, setShowCategoriesArrow] = useState(false);
 
-  // Keep the selection stable for 5 days, then rotate automatically.
+  const categoriesQuery = useQuery({
+    queryKey: ["categories", "home"],
+    queryFn: () => apiGet<Category[]>("/api/categories"),
+  });
+
+  // Keep the same mixed order for 2 days, then rotate automatically.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const now = Date.now();
-    const currentKey = fiveDayWindowKey(now);
+    const currentKey = rotationWindowKey(now);
     if (currentKey !== popularRotationKey) {
       setPopularRotationKey(currentKey);
       return;
@@ -123,7 +130,7 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const nextBoundary = (currentKey + 1) * POPULAR_ROTATION_MS;
     const delay = Math.max(1_000, nextBoundary - now + 1_000);
     const id = window.setTimeout(() => {
-      setPopularRotationKey(fiveDayWindowKey(Date.now()));
+      setPopularRotationKey(rotationWindowKey(Date.now()));
     }, delay);
     return () => window.clearTimeout(id);
   }, [popularRotationKey]);
@@ -230,109 +237,134 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const fallbackProducts = productsQuery.data?.data ?? [];
   const sourceProducts = featured.length ? featured : fallbackProducts;
   const categories = useMemo(() => {
-  const map = new Map<string, string>();
+    const fromApi = (categoriesQuery.data ?? [])
+      .filter((c) => Boolean(c.slug && c.name))
+      .map((c) => ({ slug: c.slug, name: c.name }));
 
-  sourceProducts.forEach((p) => {
-    const cat = p.categories?.[0];
-    if (cat?.slug && cat?.name) {
-      map.set(cat.slug, cat.name);
-    }
-  });
+    if (fromApi.length > 0) return fromApi;
 
-  return Array.from(map.entries()).map(([slug, name]) => ({
-    slug,
-    name,
-  }));
-}, [sourceProducts]);
+    const map = new Map<string, string>();
+    sourceProducts.forEach((p) => {
+      const cat = p.categories?.[0];
+      if (cat?.slug && cat?.name) map.set(cat.slug, cat.name);
+    });
+
+    return Array.from(map.entries()).map(([slug, name]) => ({ slug, name }));
+  }, [categoriesQuery.data, sourceProducts]);
+
+  const activeCategoryLabel = useMemo(() => {
+    if (activeCategory === MIXED_CATEGORY_KEY) return MIXED_CATEGORY_LABEL;
+    return categories.find((c) => c.slug === activeCategory)?.name ?? MIXED_CATEGORY_LABEL;
+  }, [activeCategory, categories]);
 
   const mixedTousItems = useMemo(() => {
-  if (!sourceProducts.length) return [];
+    if (!sourceProducts.length) return [];
 
-  const base = sourceProducts.slice(0, 60);
-
-  const byCategory = new Map<string, Product[]>();
-  for (const p of base) {
-    const key = p.categories?.[0]?.slug ?? "uncategorized";
-    const arr = byCategory.get(key) ?? [];
-    arr.push(p);
-    byCategory.set(key, arr);
-  }
-
-  const diversified: Product[] = [];
-  const buckets = Array.from(byCategory.values());
-
-  let round = 0;
-  while (diversified.length < base.length) {
-    let added = false;
-
-    for (const bucket of buckets) {
-      if (round < bucket.length) {
-        diversified.push(bucket[round]);
-        added = true;
-      }
+    const byCategory = new Map<string, Product[]>();
+    for (const product of sourceProducts) {
+      const key = product.categories?.[0]?.slug ?? "uncategorized";
+      const current = byCategory.get(key) ?? [];
+      current.push(product);
+      byCategory.set(key, current);
     }
 
-    if (!added) break;
-    round++;
-  }
+    const diversified: Product[] = [];
+    const buckets = Array.from(byCategory.values());
+    let round = 0;
 
-  const scored = diversified.map((p, i) => {
-    const key = productStableKey(p, i);
-    const score = stableHash32(`${popularRotationKey}:${key}`);
-    return { p, score };
-  });
+    while (diversified.length < sourceProducts.length) {
+      let addedAny = false;
+      for (const bucket of buckets) {
+        if (round < bucket.length) {
+          diversified.push(bucket[round]);
+          addedAny = true;
+        }
+      }
+      if (!addedAny) break;
+      round += 1;
+    }
 
-  scored.sort((a, b) => a.score - b.score);
+    const scored = diversified.map((p, i) => {
+      const key = productStableKey(p, i);
+      const score = stableHash32(`${popularRotationKey}:${key}`);
+      return { p, score };
+    });
 
-  return scored.slice(0, 12).map((x) => x.p);
-}, [sourceProducts, popularRotationKey]);
-const displayedItems = useMemo(() => {
-  if (activeCategory === null) {
-    return mixedTousItems;
-  }
+    scored.sort((a, b) => a.score - b.score);
+    return scored.slice(0, MIXED_CATEGORY_LIMIT).map((entry) => entry.p);
+  }, [sourceProducts, popularRotationKey]);
 
-  return sourceProducts
-    .filter((item) => item.categories?.[0]?.slug === activeCategory)
-    .slice(0, 12);
-}, [activeCategory, mixedTousItems, sourceProducts]);
+  const displayedItems = useMemo(() => {
+    if (activeCategory === MIXED_CATEGORY_KEY) {
+      return mixedTousItems;
+    }
+
+    return sourceProducts.filter((item) => item.categories?.[0]?.slug === activeCategory).slice(0, MIXED_CATEGORY_LIMIT);
+  }, [activeCategory, mixedTousItems, sourceProducts]);
+
+  useEffect(() => {
+    const el = categoriesScrollRef.current;
+    if (!el) return;
+
+    const syncArrow = () => {
+      const hasOverflow = el.scrollWidth > el.clientWidth + 4;
+      const reachedEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+      setShowCategoriesArrow(hasOverflow && !reachedEnd);
+    };
+
+    syncArrow();
+    el.addEventListener("scroll", syncArrow, { passive: true });
+    window.addEventListener("resize", syncArrow);
+
+    return () => {
+      el.removeEventListener("scroll", syncArrow);
+      window.removeEventListener("resize", syncArrow);
+    };
+  }, [categories.length]);
 
 
   const renderPopularCard = (item: PopularItem, idx: number, keyPrefix: string) => {
     const href = `/product/${item.slug}`;
     const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
+    const statusLabel = item.tag_delivery === "PRET_A_ETRE_LIVRE" ? "PRET" : item.tag_delivery === "SUR_COMMANDE" ? "COMMANDE" : null;
 
     return (
       <article
         key={item.id ?? item.slug ?? `${keyPrefix}-${idx}`}
-        className="product-card homepage-product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
+        className="product-card homepage-product-card group relative rounded-[18px] border border-[#e4cb8d] bg-[#fffaf0] p-2 shadow-[0_16px_36px_-30px_rgba(184,134,11,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-28px_rgba(184,134,11,0.55)]"
       >
-        <div className="pointer-events-none absolute" />
+        {statusLabel ? (
+          <span className="absolute right-3 top-3 z-10 rounded-full border border-[#d4af37]/35 bg-[#f8eed1] px-2 py-1 text-[10px] font-semibold tracking-wide text-[#6d5312]">
+            {statusLabel}
+          </span>
+        ) : null}
+
         <Link href={href} className="block">
-          <div className="homepage-product-media relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
+          <div className="homepage-product-media relative aspect-[3/4] overflow-hidden rounded-[14px] bg-[#f5eee0]">
             {img.startsWith("/") ? (
               <Image
                 src={img}
                 alt={item.name}
                 fill
                 sizes="(min-width: 1024px) 25vw, 100vw"
-                className="object-contain transition-transform duration-300 group-hover:scale-105"
+                className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={img}
                 alt={item.images?.[0]?.alt ?? item.name}
-                className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               />
             )}
           </div>
-          <h3 className="product-title mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
-          <p className="product-price mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
+          <h3 className="product-title mt-3 line-clamp-2 min-h-[2.8rem] text-center text-[13px] font-semibold leading-5 text-slate-900">{item.name}</h3>
+          <p className="product-price mt-1 text-center text-[15px] font-semibold text-[#4b3504]">{formatPrice(item.price)}</p>
         </Link>
         <Button
           asChild
           variant="outline"
-          className="premium-button mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]"
+          className="premium-button mt-3 h-9 w-full rounded-full border-[#d4af37]/45 bg-transparent text-xs font-semibold text-[#694d08] transition-all duration-300 hover:bg-[#fff5dd] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)] active:scale-[0.98]"
         >
           <Link href={href}>Voir le produit</Link>
         </Button>
@@ -405,25 +437,33 @@ const displayedItems = useMemo(() => {
 {/* Mobile Category Bar */}
   </section>
 </div>
-<div id="categories-bar" className="sticky-categories w-full bg-[#f8f8f8] border-b border-slate-300 md:hidden">
-  <div className="flex overflow-x-auto whitespace-nowrap">
+<div id="categories-bar" className="sticky-categories sticky top-0 z-20 w-full border-b border-[#e8dbc2] bg-[#fffaf0]/96 backdrop-blur md:hidden">
+  <div className="relative">
+  <div
+    ref={categoriesScrollRef}
+    className="flex gap-2 overflow-x-auto whitespace-nowrap px-3 py-2 [mask-image:linear-gradient(to_right,transparent_0,black_5%,black_95%,transparent_100%)]"
+  >
 
     {/* Bouton Tous */}
     <button
       onClick={() => {
-        setActiveCategory(null);
+        setActiveCategory(MIXED_CATEGORY_KEY);
         popularSectionRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "start",
         });
       }}
-      className="relative px-5 py-3 text-sm font-medium"
+      className={`relative rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 active:scale-[0.96] ${
+        activeCategory === MIXED_CATEGORY_KEY
+          ? "bg-[#f6ecd7] text-[#5f4713] shadow-[0_10px_22px_-16px_rgba(184,134,11,0.6)]"
+          : "bg-white text-slate-700"
+      }`}
     >
-      Tous
+      {MIXED_CATEGORY_LABEL}
 
       <span
-        className={`absolute left-0 bottom-0 h-[3px] w-full transition-transform duration-500 ease-out ${
-          activeCategory === null ? "scale-x-100" : "scale-x-0"
+        className={`absolute left-2 right-2 bottom-0 h-[2px] rounded-full transition-transform duration-300 ${
+          activeCategory === MIXED_CATEGORY_KEY ? "scale-x-100" : "scale-x-0"
         }`}
         style={{
           background:
@@ -447,12 +487,14 @@ const displayedItems = useMemo(() => {
               block: "start",
             });
           }}
-          className="relative px-5 py-3 text-sm font-medium"
+          className={`relative rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 active:scale-[0.96] ${
+            isActive ? "bg-[#f6ecd7] text-[#5f4713] shadow-[0_10px_22px_-16px_rgba(184,134,11,0.6)]" : "bg-white text-slate-700"
+          }`}
         >
           {cat.name}
 
           <span
-            className={`absolute left-0 bottom-0 h-[3px] w-full transition-transform duration-500 ease-out ${
+            className={`absolute left-2 right-2 bottom-0 h-[2px] rounded-full transition-transform duration-300 ${
               isActive ? "scale-x-100" : "scale-x-0"
             }`}
             style={{
@@ -465,6 +507,18 @@ const displayedItems = useMemo(() => {
       );
     })}
 
+  </div>
+  <motion.div
+    aria-hidden="true"
+    initial={false}
+    animate={{ opacity: showCategoriesArrow ? 1 : 0, x: showCategoriesArrow ? 0 : 10 }}
+    transition={{ duration: 0.25 }}
+    className="pointer-events-none absolute inset-y-0 right-2 flex items-center"
+  >
+    <span className="inline-flex h-7 w-7 animate-pulse items-center justify-center rounded-full border border-[#d4af37]/45 bg-white/90 text-[#8b6b16] shadow-[0_10px_20px_-16px_rgba(184,134,11,0.6)]">
+      {">"}
+    </span>
+  </motion.div>
   </div>
 </div>
          
@@ -484,9 +538,13 @@ const displayedItems = useMemo(() => {
           >
             <div>
               <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">
-  Toutes nos pépites
+  {activeCategoryLabel}
 </h2>
-              <p className="mt-1 text-sm text-slate-600">Sélection dynamique des meilleures références.</p>
+              <p className="mt-1 text-sm text-slate-600">
+                {activeCategory === MIXED_CATEGORY_KEY
+                  ? "Selection melangee, renouvelee automatiquement tous les 2 jours."
+                  : "Selection de produits de la categorie active."}
+              </p>
             </div>
             <Button
               asChild
@@ -517,14 +575,22 @@ const displayedItems = useMemo(() => {
           ) : null}
 
           {/* Mobile: grille 2 colonnes comme le catalogue */}
-<div
+<motion.div
   ref={popularSectionRef}
   className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 md:hidden"
 >
-    {displayedItems.map((item, idx) =>
-  renderPopularCard(item, idx, "mobile")
-)}
-</div>
+  {displayedItems.map((item, idx) => (
+    <motion.div
+      key={`mobile-wrap-${item.id ?? item.slug ?? idx}`}
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.18 }}
+      transition={{ duration: 0.35, delay: Math.min(idx, 10) * 0.03, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {renderPopularCard(item, idx, "mobile")}
+    </motion.div>
+  ))}
+</motion.div>
 
           {/* Desktop: keep existing behavior */}
           <motion.div
@@ -534,9 +600,17 @@ const displayedItems = useMemo(() => {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="popular-products popular-products-container homepage-products-container hidden grid grid-cols-2 gap-4 sm:gap-6 md:grid md:grid-cols-3 lg:grid-cols-4"
           >
-            {displayedItems.map((item, idx) =>
-  renderPopularCard(item, idx, "popular")
-)}
+            {displayedItems.map((item, idx) => (
+              <motion.div
+                key={`desktop-wrap-${item.id ?? item.slug ?? idx}`}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.45, delay: Math.min(idx, 10) * 0.03, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {renderPopularCard(item, idx, "popular")}
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       </section>

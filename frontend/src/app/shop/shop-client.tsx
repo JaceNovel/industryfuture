@@ -25,6 +25,11 @@ type ProductsResponse = {
   total?: number;
 };
 
+type AllProductsResponse = {
+  data: Product[];
+  total?: number;
+};
+
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
 const DARK_BLUE_GRADIENT = "radial-gradient(900px 300px at 20% 0%, rgb(46, 47, 49), transparent 60%), radial-gradient(700px 240px at 90% 20%, rgb(46, 47, 49), transparent 55%)";
 const GOLD_GRADIENT = "linear-gradient(135deg, #f9e79f, #d4af37, #b8860b)";
@@ -47,10 +52,6 @@ export default function ShopClient() {
   const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") ?? "");
   const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") ?? "");
   const [tag, setTag] = useState(searchParams.get("tag") ?? "");
-  const [page, setPage] = useState(() => {
-    const raw = Number(searchParams.get("page") ?? 1);
-    return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
-  });
 
   // Keep local state in sync when the URL changes (e.g. user clicks a category link while already on /shop)
   useEffect(() => {
@@ -60,8 +61,6 @@ export default function ShopClient() {
     const nextMinPrice = searchParams.get("minPrice") ?? "";
     const nextMaxPrice = searchParams.get("maxPrice") ?? "";
     const nextTag = searchParams.get("tag") ?? "";
-    const rawPage = Number(searchParams.get("page") ?? 1);
-    const nextPage = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
 
     if (search !== nextSearch) setSearch(nextSearch);
     if (sort !== nextSort) setSort(nextSort);
@@ -69,7 +68,6 @@ export default function ShopClient() {
     if (minPrice !== nextMinPrice) setMinPrice(nextMinPrice);
     if (maxPrice !== nextMaxPrice) setMaxPrice(nextMaxPrice);
     if (tag !== nextTag) setTag(nextTag);
-    if (page !== nextPage) setPage(nextPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParamsKey]);
 
@@ -86,13 +84,34 @@ export default function ShopClient() {
     if (maxPrice) p.set("maxPrice", maxPrice);
     if (tag) p.set("tag", tag);
     if (sort) p.set("sort", sort);
-    p.set("page", String(page));
     return p.toString();
-  }, [search, category, minPrice, maxPrice, tag, sort, page]);
+  }, [search, category, minPrice, maxPrice, tag, sort]);
+
+  const fetchAllProducts = async (baseQueryString: string): Promise<AllProductsResponse> => {
+    const baseParams = new URLSearchParams(baseQueryString);
+    baseParams.set("perPage", "100");
+
+    let page = 1;
+    let lastPage = 1;
+    let total: number | undefined;
+    const all: Product[] = [];
+
+    while (page <= lastPage) {
+      const params = new URLSearchParams(baseParams.toString());
+      params.set("page", String(page));
+      const res = await apiGet<ProductsResponse>(`/api/products?${params.toString()}`);
+      if (typeof res.total === "number") total = res.total;
+      all.push(...(res.data ?? []));
+      lastPage = Number(res.last_page ?? 1) || 1;
+      page = Number(res.current_page ?? page) + 1;
+    }
+
+    return { data: all, total };
+  };
 
   const productsQuery = useQuery({
     queryKey: ["products", queryString],
-    queryFn: () => apiGet<ProductsResponse>(`/api/products?${queryString}`),
+    queryFn: () => fetchAllProducts(queryString),
   });
 
   const hasSearch = search.trim().length > 0;
@@ -105,8 +124,6 @@ export default function ShopClient() {
   });
 
   const applyToUrl = () => {
-    setPage(1);
-
     const p = new URLSearchParams();
     if (search) p.set("search", search);
     if (category) p.set("category", category);
@@ -114,17 +131,6 @@ export default function ShopClient() {
     if (maxPrice) p.set("maxPrice", maxPrice);
     if (tag) p.set("tag", tag);
     if (sort) p.set("sort", sort);
-    p.set("page", "1");
-
-    router.push(`/shop?${p.toString()}`);
-  };
-
-  const goToPage = (nextPage: number) => {
-    const safePage = Math.max(1, Math.floor(nextPage));
-    setPage(safePage);
-
-    const p = new URLSearchParams(searchParams.toString());
-    p.set("page", String(safePage));
     router.push(`/shop?${p.toString()}`);
   };
 
@@ -306,34 +312,7 @@ export default function ShopClient() {
           <div className="h-px w-full" style={{ backgroundImage: DARK_BLUE_GRADIENT }} />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
-              {productsQuery.data?.total != null ? (
-                <span>
-                  {productsQuery.data.total} produit(s) — page {productsQuery.data.current_page} / {productsQuery.data.last_page}
-                </span>
-              ) : null}
-            </div>
-            <div className="flex w-full gap-2 sm:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto"
-                onClick={() => goToPage(Math.max(1, (productsQuery.data?.current_page ?? page) - 1))}
-                disabled={(productsQuery.data?.current_page ?? page) <= 1 || productsQuery.isLoading}
-              >
-                Précédent
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto"
-                onClick={() => goToPage((productsQuery.data?.current_page ?? page) + 1)}
-                disabled={
-                  productsQuery.isLoading ||
-                  (productsQuery.data?.last_page != null && (productsQuery.data?.current_page ?? page) >= productsQuery.data.last_page)
-                }
-              >
-                Suivant
-              </Button>
+              {productsQuery.data?.total != null ? <span>{productsQuery.data.total} produit(s)</span> : null}
             </div>
           </div>
           {productsQuery.isLoading ? (

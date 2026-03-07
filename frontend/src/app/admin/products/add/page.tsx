@@ -15,6 +15,8 @@ type CreateProductPayload = {
   name: string;
   description?: string;
   price: number;
+  shipping_fee?: number;
+  min_shipping_qty?: number | null;
   status: "active" | "draft";
   is_promo: boolean;
   tag_delivery?: "PRET_A_ETRE_LIVRE" | "SUR_COMMANDE";
@@ -40,6 +42,8 @@ export default function AdminProductsAddPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("0");
+  const [shippingFee, setShippingFee] = useState("0");
+  const [minShippingQty, setMinShippingQty] = useState("");
   const [priceAir, setPriceAir] = useState("");
   const [priceSea, setPriceSea] = useState("");
   const [delayAirMin, setDelayAirMin] = useState("5");
@@ -78,6 +82,8 @@ export default function AdminProductsAddPage() {
   const createProduct = useMutation({
     mutationFn: async () => {
       const parsedPrice = Number(price || 0);
+      const parsedShippingFee = Number(shippingFee || 0);
+      const parsedMinShippingQty = minShippingQty.trim() ? Number(minShippingQty) : null;
       const parsedAir = priceAir.trim() ? Number(priceAir) : null;
       const parsedSea = priceSea.trim() ? Number(priceSea) : null;
       const parsedDelayAirMin = delayAirMin.trim() ? Number(delayAirMin) : 5;
@@ -105,6 +111,8 @@ export default function AdminProductsAddPage() {
         name: name.trim(),
         description: description.trim() || undefined,
         price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
+        shipping_fee: Number.isFinite(parsedShippingFee) ? parsedShippingFee : 0,
+        min_shipping_qty: parsedMinShippingQty != null && Number.isFinite(parsedMinShippingQty) ? parsedMinShippingQty : null,
         status: "active",
         is_promo: false,
         tag_delivery: tagDelivery,
@@ -220,6 +228,19 @@ export default function AdminProductsAddPage() {
             <div className="grid gap-2">
               <Label>Prix de base *</Label>
               <Input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Frais de livraison (FCFA)</Label>
+                <Input value={shippingFee} onChange={(e) => setShippingFee(e.target.value)} inputMode="decimal" placeholder="Ex: 1000" />
+                <p className="text-xs text-muted-foreground">Appliqué une seule fois par article (pas multiplié par quantité).</p>
+              </div>
+              <div className="grid gap-2">
+                <Label>Quantité minimum</Label>
+                <Input value={minShippingQty} onChange={(e) => setMinShippingQty(e.target.value)} inputMode="numeric" placeholder="Ex: 10" />
+                <p className="text-xs text-muted-foreground">Logique interne: expédition après atteinte de cette quantité.</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

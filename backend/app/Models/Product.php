@@ -15,6 +15,8 @@ class Product extends Model
         'description',
         'price',
         'compare_at_price',
+        'shipping_fee',
+        'min_shipping_qty',
         'stock',
         'status',
         'tag_delivery',
@@ -28,11 +30,13 @@ class Product extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'compare_at_price' => 'decimal:2',
+        'shipping_fee' => 'decimal:2',
         'featured' => 'boolean',
         'is_promo' => 'boolean',
         'metadata' => 'array',
         'stock' => 'integer',
         'delivery_delay_days' => 'integer',
+        'min_shipping_qty' => 'integer',
     ];
 
     public function categories()

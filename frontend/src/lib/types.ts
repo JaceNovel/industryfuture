@@ -21,6 +21,8 @@ export type Product = {
   description?: string | null;
   price?: number | string;
   compare_at_price?: number | string | null;
+  shipping_fee?: number | string;
+  min_shipping_qty?: number | null;
   stock?: number;
   status?: "draft" | "active";
   tag_delivery?: "PRET_A_ETRE_LIVRE" | "SUR_COMMANDE";
