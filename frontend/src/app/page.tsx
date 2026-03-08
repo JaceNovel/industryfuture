@@ -405,7 +405,7 @@ const displayedItems = useMemo(() => {
 {/* Mobile Category Bar */}
   </section>
 </div>
-<div id="categories-bar" className="sticky-categories w-full bg-[#f8f8f8] border-b border-slate-300 md:hidden">
+<div id="categories-bar" className="sticky-categories w-full bg-[#f8f8f8] md:hidden">
   <div className="flex overflow-x-auto whitespace-nowrap">
 
     {/* Bouton Tous */}
