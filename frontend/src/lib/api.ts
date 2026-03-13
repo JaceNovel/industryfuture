@@ -1,10 +1,10 @@
 import { getToken } from "@/lib/auth";
 
 function getBaseUrl() {
-  // In the browser, prefer same-origin calls and let Next.js rewrites proxy /api/*
-  // to the Laravel backend. This avoids CORS issues and "Failed to fetch".
   if (typeof window !== "undefined") return "";
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {

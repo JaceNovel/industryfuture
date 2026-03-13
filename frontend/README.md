@@ -1,3 +1,40 @@
+## Backend Next.js intégré
+
+Le backend Laravel a été remplacé par une API Next.js native exposée via `src/app/api/[[...path]]/route.ts`.
+
+## Variables d'environnement
+
+Copiez `frontend/.env.example` puis renseignez au minimum :
+
+```bash
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/industryfuture?schema=public"
+AUTH_SECRET="une-cle-longue-et-secrete"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+BLOB_READ_WRITE_TOKEN=""
+```
+
+Notes :
+
+ - `DATABASE_URL` doit pointer vers une base PostgreSQL compatible Vercel/Neon/Supabase.
+ - `BLOB_READ_WRITE_TOKEN` est requis pour les uploads admin et les photos de demandes d'import.
+ - le flux de paiement est actuellement en mode mock interne, ce qui permet de valider le tunnel complet sans dépendre du backend Laravel.
+
+## Démarrage local
+
+```bash
+npm install
+npx prisma generate
+npx prisma db push
+npm run dev
+```
+
+## Build production
+
+```bash
+npm run build
+```
+
+Le build a été validé avec succès après la migration backend.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
