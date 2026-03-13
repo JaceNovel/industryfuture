@@ -1,10 +1,21 @@
-# IndustryFuture — e-commerce (Next.js + Laravel) + scraper migration
+# IndustryFuture — e-commerce monorepo
 
 Ce workspace contient :
 
-- `backend/` : API Laravel 11 (Sanctum, e-commerce)
-- `frontend/` : Front Next.js 14 App Router (TS, Tailwind, shadcn/ui, TanStack Query)
+- `backend/` : ancien backend Laravel 11
+- `frontend/` : application Next.js avec frontend + backend API intégré
 - `tools/scraper/` : Scraper Playwright + exports JSON/CSV + images
+
+## Déploiement Vercel
+
+Le déploiement Vercel doit cibler l'application Next.js.
+
+Deux modes sont supportés :
+
+- racine du repo avec `package.json` monorepo et `vercel.json`
+- ou `Root Directory = frontend` dans les réglages Vercel
+
+Si votre projet Vercel est encore configuré sur `backend/`, il construira Vite/Laravel et échouera. Dans ce cas, remettez la racine du projet sur le repo root ou sur `frontend/`.
 
 ## Prérequis
 
