@@ -1575,6 +1575,8 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
       },
     });
 
+    await tx.cartItem.deleteMany({ where: { cart_id: cart.id } });
+
     return { orderId: order.id, paymentId: payment.id };
   });
 

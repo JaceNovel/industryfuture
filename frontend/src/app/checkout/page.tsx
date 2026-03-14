@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
-import type { Address, Order } from "@/lib/types";
+import type { Address, Cart, Order } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,7 @@ function normalizeCountry(value: string | null | undefined) {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const addressesQuery = useQuery({
     queryKey: ["addresses"],
@@ -128,6 +129,15 @@ export default function CheckoutPage() {
       return apiPost<CheckoutResponse>("/api/checkout", payload);
     },
     onSuccess: (res) => {
+      queryClient.setQueryData<Cart | undefined>(["cart"], (current) =>
+        current
+          ? {
+              ...current,
+              items: [],
+            }
+          : current,
+      );
+
       const paymentUrl = (res.payment_url ?? "").trim();
       if (paymentUrl) {
         window.location.assign(paymentUrl);
