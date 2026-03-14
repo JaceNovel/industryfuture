@@ -58,7 +58,7 @@ function splitCustomerName(fullName: string) {
 }
 
 function sanitizePhoneNumber(value: string | null | undefined) {
-  const cleaned = String(value ?? "").replace(/[^\d+]/g, "").trim();
+  const cleaned = String(value ?? "").replace(/\D/g, "").trim();
   return cleaned || null;
 }
 
@@ -102,10 +102,11 @@ function getFedaPayHeaders() {
 }
 
 async function fedapayRequest<T>(path: string, method: FedaPayRequestMethod, body?: Record<string, unknown>): Promise<T> {
+  const payload = method === "POST" ? JSON.stringify(body ?? {}) : undefined;
   const response = await fetch(`${getFedaPayBaseUrl()}/v1${path}`, {
     method,
     headers: getFedaPayHeaders(),
-    body: body ? JSON.stringify(body) : undefined,
+    body: payload,
     cache: "no-store",
   });
 

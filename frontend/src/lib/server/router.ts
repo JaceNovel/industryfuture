@@ -444,6 +444,22 @@ function canUseMockPayments() {
 }
 
 function extractErrorMessage(error: unknown): string {
+  const formatErrorsRecord = (value: unknown) => {
+    const record = asRecord(value);
+    if (!record) return "";
+
+    for (const [field, details] of Object.entries(record)) {
+      if (Array.isArray(details) && details.length > 0) {
+        return `${field}: ${String(details[0])}`;
+      }
+      if (typeof details === "string" && details.trim()) {
+        return `${field}: ${details.trim()}`;
+      }
+    }
+
+    return "";
+  };
+
   if (error instanceof Error && error.message.trim()) return error.message.trim();
 
   const record = asRecord(error);
@@ -459,12 +475,24 @@ function extractErrorMessage(error: unknown): string {
 
     const data = asRecord(response.data);
     if (data && typeof data.message === "string" && data.message.trim()) {
-      return data.message.trim();
+      const details = formatErrorsRecord(data.errors);
+      return details ? `${data.message.trim()} (${details})` : data.message.trim();
+    }
+
+    if (data) {
+      const details = formatErrorsRecord(data.errors);
+      if (details) return details;
     }
 
     const body = asRecord(response.body);
     if (body && typeof body.message === "string" && body.message.trim()) {
-      return body.message.trim();
+      const details = formatErrorsRecord(body.errors);
+      return details ? `${body.message.trim()} (${details})` : body.message.trim();
+    }
+
+    if (body) {
+      const details = formatErrorsRecord(body.errors);
+      if (details) return details;
     }
   }
 
@@ -474,6 +502,9 @@ function extractErrorMessage(error: unknown): string {
 function getPaymentInitializationFailure(error: unknown) {
   const rawMessage = extractErrorMessage(error);
   const normalized = rawMessage.toLowerCase();
+  const record = asRecord(error);
+  const response = asRecord(record?.response);
+  const responseStatus = typeof response?.status === "number" ? response.status : null;
 
   if (normalized.includes("not configured")) {
     return {
@@ -499,9 +530,17 @@ function getPaymentInitializationFailure(error: unknown) {
     };
   }
 
+  if (responseStatus === 400 || responseStatus === 401 || responseStatus === 403 || responseStatus === 404 || responseStatus === 409 || responseStatus === 422) {
+    return {
+      status: 422,
+      userMessage: rawMessage || "FedaPay a refusé les informations de paiement envoyées.",
+      rawMessage: rawMessage || "FedaPay rejected the payment initialization request.",
+    };
+  }
+
   return {
     status: 502,
-    userMessage: "Le paiement n'a pas pu être initialisé. Vérifiez le montant et les informations client.",
+    userMessage: rawMessage || "Le paiement n'a pas pu être initialisé. Vérifiez le montant et les informations client.",
     rawMessage: rawMessage || "Unable to initialize hosted payment.",
   };
 }
