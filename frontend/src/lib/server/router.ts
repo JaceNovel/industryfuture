@@ -1455,10 +1455,12 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
 
   let shippingAddressId: number | null = null;
   let createdAddressId: number | null = null;
+  let shippingAddressRecord: { id: number; phone: string | null; country: string; full_name: string } | null = null;
   if (payload.shipping_address_id) {
     const address = await prisma.address.findFirst({ where: { id: payload.shipping_address_id, user_id: user.id } });
     if (!address) return fail("Address not found", 404);
     shippingAddressId = address.id;
+    shippingAddressRecord = { id: address.id, phone: address.phone ?? null, country: address.country, full_name: address.full_name };
   } else if (payload.shipping_address) {
     const address = await prisma.address.create({
       data: {
@@ -1476,6 +1478,7 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
     });
     shippingAddressId = address.id;
     createdAddressId = address.id;
+    shippingAddressRecord = { id: address.id, phone: address.phone ?? null, country: address.country, full_name: address.full_name };
   } else {
     const fallback = await prisma.address.findFirst({
       where: { user_id: user.id },
@@ -1483,6 +1486,7 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
     });
     if (!fallback) return fail("Shipping address is required", 422);
     shippingAddressId = fallback.id;
+    shippingAddressRecord = { id: fallback.id, phone: fallback.phone ?? null, country: fallback.country, full_name: fallback.full_name };
   }
 
   const subtotal = cart.items.reduce((sum, item) => sum + Number(item.product.price) * item.qty, 0);
@@ -1544,8 +1548,8 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
       description: `Paiement commande #${result.orderId}`,
       customerName: user.name,
       customerEmail: user.email,
-      customerPhone: payload.customer_phone ?? payload.shipping_address?.phone ?? null,
-      customerCountry: payload.customer_country ?? payload.shipping_address?.country ?? null,
+      customerPhone: payload.customer_phone ?? payload.shipping_address?.phone ?? shippingAddressRecord?.phone ?? null,
+      customerCountry: payload.customer_country ?? payload.shipping_address?.country ?? shippingAddressRecord?.country ?? null,
       extraMetadata: { type: "order" },
     });
   } catch (error) {

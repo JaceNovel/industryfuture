@@ -49,6 +49,11 @@ function addressLabel(a: Address) {
   return parts.join(" — ") || `Adresse #${a.id}`;
 }
 
+function normalizeCountry(value: string | null | undefined) {
+  const cleaned = String(value ?? "").trim().toUpperCase().replace(/[^A-Z]/g, "");
+  return cleaned.length === 2 ? cleaned : "";
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
 
@@ -86,6 +91,16 @@ export default function CheckoutPage() {
     return addresses.find((a) => a.id === id) ?? null;
   }, [addresses, selectedAddress]);
 
+  useEffect(() => {
+    if (!selectedAddressObj) return;
+    const nextPhone = (selectedAddressObj.phone ?? "").trim();
+    const nextCountry = normalizeCountry(selectedAddressObj.country);
+    setPhone(nextPhone);
+    if (nextCountry) {
+      setCountry(nextCountry);
+    }
+  }, [selectedAddressObj]);
+
   const usingSavedAddress = Boolean(selectedAddressObj);
   const usingNewAddress = !usingSavedAddress;
 
@@ -122,8 +137,10 @@ export default function CheckoutPage() {
     },
   });
 
+  const hasValidCountry = normalizeCountry(country).length === 2;
+  const hasPhone = phone.trim().length >= 8;
   const canSubmitNew = fullName.trim() && line1.trim() && city.trim() && postalCode.trim();
-  const canSubmit = usingSavedAddress ? true : Boolean(canSubmitNew);
+  const canSubmit = Boolean((usingSavedAddress ? true : canSubmitNew) && hasValidCountry && hasPhone);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-10">
@@ -292,6 +309,13 @@ export default function CheckoutPage() {
               />
             </div>
           </div>
+
+          {!hasPhone ? (
+            <div className="text-sm text-destructive">Ajoutez un numéro de téléphone valide pour initialiser le paiement.</div>
+          ) : null}
+          {!hasValidCountry ? (
+            <div className="text-sm text-destructive">Le pays doit être un code sur 2 lettres, par exemple BJ.</div>
+          ) : null}
 
           {checkout.isError ? (
             <div className="text-sm text-destructive">{(checkout.error as Error).message}</div>
