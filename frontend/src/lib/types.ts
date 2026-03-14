@@ -49,12 +49,14 @@ export type Cart = {
 export type Order = {
   id: number;
   status: string;
+  payment_status?: "completed" | "failed" | "pending" | "unpaid";
   tag_delivery: "PRET_A_ETRE_LIVRE" | "SUR_COMMANDE";
   subtotal: number | string;
   total: number | string;
   created_at?: string;
   metadata?: Record<string, unknown> | null;
   payments?: Payment[];
+  user?: { id?: number; name?: string; email?: string };
   items?: Array<{
     id: number;
     name: string;

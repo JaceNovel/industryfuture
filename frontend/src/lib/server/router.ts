@@ -263,10 +263,29 @@ function mapProduct(product: ProductWithRelations | null) {
   };
 }
 
+function sortPaymentsByDate(payments: OrderWithRelations["payments"]) {
+  return [...payments].sort((left, right) => {
+    const leftTime = left.created_at instanceof Date ? left.created_at.getTime() : new Date(left.created_at ?? 0).getTime();
+    const rightTime = right.created_at instanceof Date ? right.created_at.getTime() : new Date(right.created_at ?? 0).getTime();
+    return rightTime - leftTime;
+  });
+}
+
+function deriveOrderPaymentStatus(payments: OrderWithRelations["payments"]) {
+  const sorted = sortPaymentsByDate(payments);
+  if (sorted.some((payment) => payment.status === "completed")) return "completed";
+  if (sorted.some((payment) => payment.status === "pending")) return "pending";
+  if (sorted.some((payment) => payment.status === "failed")) return "failed";
+  return "unpaid";
+}
+
 function mapOrder(order: OrderWithRelations | null) {
   if (!order) return null;
+  const payments = sortPaymentsByDate(order.payments);
   return {
     ...order,
+    payments,
+    payment_status: deriveOrderPaymentStatus(payments),
     items: order.items.map((item) => ({
       ...item,
       product: mapProduct(item.product as ProductWithRelations | null),
@@ -848,8 +867,8 @@ async function createDeliveryNotePdf(order: OrderWithRelations) {
   drawSectionTitle("Articles");
   const colName = margin;
   const colQty = margin + 288;
-  const colUnit = margin + 350;
-  const colTotal = margin + 445;
+  const colUnit = margin + 338;
+  const colTotal = margin + 452;
   const headerHeight = 24;
 
   const drawTableHeader = () => {
@@ -863,7 +882,7 @@ async function createDeliveryNotePdf(order: OrderWithRelations) {
     });
     page.drawText("Produit", { x: colName + 8, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
     page.drawText("Qté", { x: colQty, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
-    page.drawText("PU", { x: colUnit, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
+    page.drawText("Prix de base", { x: colUnit, y: y - 10, size: 8.5, font: bold, color: rgb(0.28, 0.32, 0.38) });
     page.drawText("Total", { x: colTotal, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
     y -= 28;
   };
@@ -925,31 +944,59 @@ async function createDeliveryNotePdf(order: OrderWithRelations) {
     y -= rowHeight + 8;
   }
 
-  ensureSpace(92);
+  ensureSpace(140);
   page.drawRectangle({
     x: pageWidth - margin - 200,
-    y: y - 48,
+    y: y - 96,
     width: 200,
-    height: 48,
+    height: 96,
     color: rgb(0.96, 0.98, 0.94),
     borderColor: rgb(0.84, 0.9, 0.79),
     borderWidth: 1,
   });
-  page.drawText("Total commande", {
+  page.drawText("Prix de base / recapitulatif", {
     x: pageWidth - margin - 184,
     y: y - 16,
     size: 10,
     font: regular,
     color: rgb(0.35, 0.42, 0.29),
   });
+  page.drawText(`Sous-total: ${formatPdfMoney(order.subtotal)}`, {
+    x: pageWidth - margin - 184,
+    y: y - 32,
+    size: 9.5,
+    font: regular,
+    color: rgb(0.22, 0.28, 0.2),
+  });
+  page.drawText(`Livraison: ${formatPdfMoney(order.shipping_total)}`, {
+    x: pageWidth - margin - 184,
+    y: y - 46,
+    size: 9.5,
+    font: regular,
+    color: rgb(0.22, 0.28, 0.2),
+  });
+  page.drawText(`Remise: ${formatPdfMoney(order.discount_total)}`, {
+    x: pageWidth - margin - 184,
+    y: y - 60,
+    size: 9.5,
+    font: regular,
+    color: rgb(0.22, 0.28, 0.2),
+  });
+  page.drawText("Total commande", {
+    x: pageWidth - margin - 184,
+    y: y - 78,
+    size: 10,
+    font: regular,
+    color: rgb(0.35, 0.42, 0.29),
+  });
   page.drawText(formatPdfMoney(order.total), {
     x: pageWidth - margin - 184,
-    y: y - 33,
+    y: y - 92,
     size: 15,
     font: bold,
     color: rgb(0.16, 0.31, 0.13),
   });
-  y -= 68;
+  y -= 116;
 
   drawSectionTitle("Suivi logistique");
   drawLabelValue("Mode de livraison", order.tag_delivery === "PRET_A_ETRE_LIVRE" ? "Pret a etre livre" : "Sur commande", margin, columnWidth);

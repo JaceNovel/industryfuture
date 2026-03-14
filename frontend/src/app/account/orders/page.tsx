@@ -41,6 +41,19 @@ function statusLabel(status: string) {
   return status;
 }
 
+function paymentLabel(status?: Order["payment_status"]) {
+  if (status === "completed") return "Paiement validé";
+  if (status === "failed") return "Échec de paiement";
+  if (status === "pending") return "Paiement en attente";
+  return "Paiement non démarré";
+}
+
+function displayOrderLabel(order: Order) {
+  if (order.payment_status === "failed") return "Échec de paiement";
+  if (order.payment_status === "pending" || order.payment_status === "unpaid") return "Paiement en attente";
+  return statusLabel(order.status);
+}
+
 function statusKey(status: string): "pending" | "preparing" | "shipped" | "delivered" | "other" {
   const s = (status ?? "").toLowerCase();
   if (s === "pending") return "pending";
@@ -88,6 +101,12 @@ export default function OrdersPage() {
       <div className="space-y-4">
         {(ordersQuery.data?.data ?? [])
           .filter((o) => {
+            if (o.payment_status === "failed") {
+              return tab === "all";
+            }
+            if (o.payment_status === "pending" || o.payment_status === "unpaid") {
+              return tab === "all" || tab === "pending";
+            }
             if (tab === "all") return true;
             return statusKey(o.status) === tab;
           })
@@ -108,7 +127,7 @@ export default function OrdersPage() {
 
                   <Badge variant="secondary" className="gap-2 bg-muted/40 text-foreground">
                     <Clock className="h-4 w-4" />
-                    {statusLabel(o.status)}
+                    {displayOrderLabel(o)}
                   </Badge>
                 </CardHeader>
 
@@ -134,6 +153,7 @@ export default function OrdersPage() {
                     <div className="space-y-1">
                       <div className="text-lg font-semibold">{item?.name ?? `Commande #${o.id}`}</div>
                       <div className="text-sm text-muted-foreground">Quantité: {item?.qty ?? 1}</div>
+                      <div className="text-sm text-muted-foreground">{paymentLabel(o.payment_status)}</div>
                       <div className="text-lg font-semibold">{formatMoneyFCFA(item?.price ?? o.total)}</div>
                       {o.items && o.items.length > 1 ? (
                         <div className="text-sm text-muted-foreground">+ {o.items.length - 1} autre(s) article(s)</div>

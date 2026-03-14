@@ -25,6 +25,19 @@ function statusLabel(status: string) {
   return status;
 }
 
+function paymentLabel(status?: Order["payment_status"]) {
+  if (status === "completed") return "Paiement validé";
+  if (status === "failed") return "Échec de paiement";
+  if (status === "pending") return "Paiement en attente";
+  return "Paiement non démarré";
+}
+
+function displayOrderLabel(order: Order) {
+  if (order.payment_status === "failed") return "Échec de paiement";
+  if (order.payment_status === "pending" || order.payment_status === "unpaid") return "Paiement en attente";
+  return statusLabel(order.status);
+}
+
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
@@ -42,7 +55,8 @@ export default function OrderDetailsPage() {
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Commande #{id}</h1>
-          {order ? <Badge variant="secondary" className="mt-2">{statusLabel(order.status)}</Badge> : null}
+          {order ? <Badge variant="secondary" className="mt-2">{displayOrderLabel(order)}</Badge> : null}
+          {order ? <div className="mt-2 text-sm text-muted-foreground">{paymentLabel(order.payment_status)}</div> : null}
         </div>
         <Button asChild variant="secondary" className="w-full sm:w-auto">
           <Link href="/account/orders">Retour</Link>

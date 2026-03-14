@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPatch } from "@/lib/api";
 import type { Order } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,20 @@ export default function AdminOrdersPage() {
   function formatMoneyFCFA(v: unknown) {
     const n = Number(v ?? 0);
     return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0)} F CFA`;
+  }
+
+  function paymentLabel(status?: Order["payment_status"]) {
+    if (status === "completed") return "Payé";
+    if (status === "failed") return "Échec de paiement";
+    if (status === "pending") return "Paiement en attente";
+    return "Aucun paiement";
+  }
+
+  function paymentBadgeClass(status?: Order["payment_status"]) {
+    if (status === "completed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (status === "failed") return "bg-red-50 text-red-700 border-red-200";
+    if (status === "pending") return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-slate-100 text-slate-700 border-slate-200";
   }
 
   const ordersQuery = useQuery({
@@ -53,6 +68,8 @@ export default function AdminOrdersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Paiement</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tag livraison</TableHead>
                 <TableHead>Total</TableHead>
@@ -63,6 +80,17 @@ export default function AdminOrdersPage() {
               {(ordersQuery.data?.data ?? []).map((o) => (
                 <TableRow key={o.id}>
                   <TableCell>{o.id}</TableCell>
+                  <TableCell>
+                    <div className="min-w-[180px]">
+                      <div className="font-medium">{o.user?.name ?? "Client inconnu"}</div>
+                      <div className="text-xs text-muted-foreground">{o.user?.email ?? "—"}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={paymentBadgeClass(o.payment_status)}>
+                      {paymentLabel(o.payment_status)}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <div className="grid gap-2">
                       <Label className="text-xs text-muted-foreground">status</Label>
