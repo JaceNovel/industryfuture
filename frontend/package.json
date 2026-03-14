@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "import:products": "node scripts/import-products.mjs",
-    "import:legacy-db": "node scripts/import-legacy-db.mjs"
+    "import:legacy-db": "node scripts/import-legacy-db.mjs",
+    "backfill:legacy-media": "node scripts/backfill-legacy-media.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -552,7 +552,7 @@ const displayedItems = useMemo(() => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="homepage-feature-track hidden md:grid"
+            className="homepage-feature-track hidden md:flex"
           >
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")

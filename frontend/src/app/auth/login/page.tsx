@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
@@ -17,16 +17,24 @@ type LoginResponse = {
   user: { id: number; name: string; email: string; role: string };
 };
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const nextPath = searchParams.get("next")?.trim() || "";
+  const infoMessage = searchParams.get("message")?.trim() || "";
 
   const login = useMutation({
     mutationFn: async () => apiPost<LoginResponse>("/api/auth/login", { email, password }),
     onSuccess: (data) => {
       setAuthCookies(data.token, data.user.role, data.user.name, data.user.email);
-      router.push(data.user.role === "admin" ? "/admin" : "/account");
+      if (data.user.role === "admin") {
+        router.push("/admin");
+        return;
+      }
+
+      router.push(nextPath.startsWith("/") ? nextPath : "/account");
     },
   });
 
@@ -66,6 +74,8 @@ export default function LoginPage() {
               <p className="auth-subtitle">Accedez a votre espace personnel</p>
             </div>
             <div className="auth-divider" />
+
+            {infoMessage ? <div className="auth-info">{infoMessage}</div> : null}
 
             <form
               className="auth-form-grid"
@@ -146,5 +156,13 @@ export default function LoginPage() {
         </motion.section>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="auth-page"><div className="auth-shell"><section className="auth-form"><div className="auth-card"><div className="auth-header"><h2 className="auth-title">Connexion</h2><p className="auth-subtitle">Chargement...</p></div></div></section></div></main>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

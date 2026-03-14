@@ -48,7 +48,7 @@ export default function ImportServicePage() {
   useEffect(() => {
     const token = getToken();
     if (!token) {
-      router.push("/auth/login");
+      router.push(`/auth/login?next=${encodeURIComponent("/import-service")}&message=${encodeURIComponent("Connectez-vous pour soumettre ou payer un service d'import.")}`);
       return;
     }
     setCheckedAuth(true);

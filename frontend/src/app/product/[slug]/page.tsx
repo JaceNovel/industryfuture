@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 import { flyToCart } from "@/lib/fly-to-cart";
 import type { Product, ProductReview, ProductReviewsResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -346,6 +347,15 @@ export default function ProductPage() {
   }, [isLocalOnly, product?.delivery_delay_days, selectedTransportDelay, transportMode]);
 
   async function handleAddToCart(button: HTMLElement, redirectToCheckout: boolean) {
+    if (!getToken()) {
+      const nextPath = `/product/${params.slug}`;
+      const message = redirectToCheckout
+        ? "Connectez-vous pour acheter ce produit et continuer vers le paiement."
+        : "Connectez-vous pour ajouter ce produit a votre panier.";
+      router.push(`/auth/login?next=${encodeURIComponent(nextPath)}&message=${encodeURIComponent(message)}`);
+      return;
+    }
+
     try {
       await addToCart.mutateAsync(pricingSummary.quantity);
       flyToCart(button);
@@ -353,11 +363,17 @@ export default function ProductPage() {
         router.push("/checkout");
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Impossible d'ajouter ce produit au panier.";
-      window.alert(message);
-      if (message.toLowerCase().includes("unauthorized")) {
-        router.push("/auth/login");
+      const rawMessage = error instanceof Error ? error.message : "Impossible d'ajouter ce produit au panier.";
+      if (rawMessage.toLowerCase().includes("unauthorized")) {
+        const nextPath = `/product/${params.slug}`;
+        const message = redirectToCheckout
+          ? "Votre session a expire. Connectez-vous pour finaliser votre achat."
+          : "Votre session a expire. Connectez-vous pour ajouter ce produit au panier.";
+        router.push(`/auth/login?next=${encodeURIComponent(nextPath)}&message=${encodeURIComponent(message)}`);
+        return;
       }
+
+      window.alert(rawMessage);
     }
   }
 

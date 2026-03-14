@@ -36,7 +36,9 @@ export default function AccountImportServicesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!getToken()) router.push("/auth/login");
+    if (!getToken()) {
+      router.push(`/auth/login?next=${encodeURIComponent("/account/import-services")}&message=${encodeURIComponent("Connectez-vous pour consulter et payer vos services d'import.")}`);
+    }
   }, [router]);
 
   const requestsQuery = useQuery({

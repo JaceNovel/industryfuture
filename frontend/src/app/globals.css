@@ -1095,14 +1095,12 @@
 }
 
 .homepage-feature-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 168px;
+  display: flex;
+  flex-wrap: nowrap;
   align-items: stretch;
   gap: 14px;
   overflow-x: auto;
   overflow-y: hidden;
-  justify-content: start;
   width: 100%;
   padding: 0 2px;
   scrollbar-width: none;

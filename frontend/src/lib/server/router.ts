@@ -396,6 +396,14 @@ function buildPaymentReturnUrl(orderId: number, paymentId: number, extra: Record
   return url.toString();
 }
 
+function canUseMockPayments() {
+  if (process.env.ALLOW_MOCK_PAYMENTS?.trim() === "1" || process.env.ALLOW_MOCK_PAYMENTS?.trim()?.toLowerCase() === "true") {
+    return true;
+  }
+
+  return process.env.NODE_ENV !== "production";
+}
+
 async function initializeHostedPayment(params: {
   paymentId: number;
   orderId: number;
@@ -408,6 +416,10 @@ async function initializeHostedPayment(params: {
   extraMetadata?: Record<string, unknown>;
 }) {
   if (!isFedaPayConfigured()) {
+    if (!canUseMockPayments()) {
+      throw new Error("FedaPay is not configured on the server.");
+    }
+
     const paymentUrl = buildPaymentReturnUrl(params.orderId, params.paymentId, { mock: "1" });
     return {
       provider: "mock" as const,
@@ -592,6 +604,379 @@ async function createPdf(title: string, lines: string[]) {
     y -= 18;
     if (y < 80) break;
   }
+
+  return Buffer.from(await pdf.save());
+}
+
+function formatPdfMoney(value: unknown) {
+  const amount = Number(value ?? 0);
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(amount) ? amount : 0)} FCFA`;
+}
+
+function formatPdfDate(value: Date | string | null | undefined) {
+  if (!value) return "-";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function formatStatusLabel(status: string | null | undefined) {
+  const normalized = String(status ?? "pending").toLowerCase();
+  return {
+    pending: "En attente",
+    paid: "Payee",
+    completed: "Payee",
+    failed: "Echec",
+    preparing: "En preparation",
+    processing: "En traitement",
+    shipped: "Expediee",
+    delivered: "Livree",
+    canceled: "Annulee",
+    ready_for_pickup: "Pret pour retrait",
+    out_for_delivery: "En cours de livraison",
+  }[normalized] ?? normalized.replace(/_/g, " ");
+}
+
+function wrapPdfText(text: string, font: Awaited<ReturnType<PDFDocument["embedFont"]>>, size: number, maxWidth: number) {
+  const source = text.trim() || "-";
+  const paragraphs = source.split(/\r?\n/);
+  const lines: string[] = [];
+
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      lines.push("");
+      continue;
+    }
+
+    let current = "";
+    for (const word of words) {
+      const next = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(next, size) <= maxWidth) {
+        current = next;
+        continue;
+      }
+
+      if (current) {
+        lines.push(current);
+      }
+
+      if (font.widthOfTextAtSize(word, size) <= maxWidth) {
+        current = word;
+        continue;
+      }
+
+      let chunk = "";
+      for (const char of word) {
+        const candidate = `${chunk}${char}`;
+        if (chunk && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+          lines.push(chunk);
+          chunk = char;
+        } else {
+          chunk = candidate;
+        }
+      }
+      current = chunk;
+    }
+
+    if (current) lines.push(current);
+  }
+
+  return lines.length ? lines : ["-"];
+}
+
+async function createDeliveryNotePdf(order: OrderWithRelations) {
+  const pdf = await PDFDocument.create();
+  const regular = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const margin = 42;
+  const contentWidth = pageWidth - margin * 2;
+  const meta = ((order.metadata as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+  const shipping = order.shippingAddress;
+  const payment = order.payments[0] ?? null;
+  const deliveryStatus = typeof meta.delivery_status === "string" ? meta.delivery_status : null;
+  const orderNumber = typeof meta.order_number === "string" && meta.order_number.trim() ? meta.order_number.trim() : `IF${order.id}`;
+  const trackingNumber = typeof meta.tracking_number === "string" && meta.tracking_number.trim() ? meta.tracking_number.trim() : "-";
+  const estimatedDelivery = typeof meta.estimated_delivery === "string" ? meta.estimated_delivery : null;
+  const brand = "FuturInd";
+  const pages: Array<ReturnType<PDFDocument["addPage"]>> = [];
+  let page = pdf.addPage([pageWidth, pageHeight]);
+  pages.push(page);
+  let y = pageHeight - margin;
+
+  const addPage = () => {
+    page = pdf.addPage([pageWidth, pageHeight]);
+    pages.push(page);
+    y = pageHeight - margin;
+  };
+
+  const ensureSpace = (needed: number) => {
+    if (y - needed < margin) addPage();
+  };
+
+  const drawTextLine = (text: string, options?: { x?: number; size?: number; font?: typeof regular; color?: ReturnType<typeof rgb> }) => {
+    const size = options?.size ?? 11;
+    page.drawText(text, {
+      x: options?.x ?? margin,
+      y,
+      size,
+      font: options?.font ?? regular,
+      color: options?.color ?? rgb(0.17, 0.2, 0.24),
+    });
+  };
+
+  const drawParagraph = (text: string, x: number, width: number, options?: { size?: number; font?: typeof regular; color?: ReturnType<typeof rgb>; lineHeight?: number }) => {
+    const size = options?.size ?? 10.5;
+    const font = options?.font ?? regular;
+    const color = options?.color ?? rgb(0.17, 0.2, 0.24);
+    const lineHeight = options?.lineHeight ?? size + 3;
+    const lines = wrapPdfText(text, font, size, width);
+    ensureSpace(lines.length * lineHeight + 2);
+    for (const line of lines) {
+      page.drawText(line, { x, y, size, font, color });
+      y -= lineHeight;
+    }
+  };
+
+  const drawLabelValue = (label: string, value: string, x: number, width: number) => {
+    const labelSize = 9;
+    const valueSize = 11;
+    const labelLineHeight = 12;
+    const valueLineHeight = 14;
+    const valueLines = wrapPdfText(value, regular, valueSize, width);
+    const blockHeight = labelLineHeight + valueLines.length * valueLineHeight + 6;
+    ensureSpace(blockHeight);
+    page.drawText(label, {
+      x,
+      y,
+      size: labelSize,
+      font: bold,
+      color: rgb(0.47, 0.52, 0.6),
+    });
+    y -= labelLineHeight;
+    for (const line of valueLines) {
+      page.drawText(line, {
+        x,
+        y,
+        size: valueSize,
+        font: regular,
+        color: rgb(0.15, 0.18, 0.22),
+      });
+      y -= valueLineHeight;
+    }
+    y -= 6;
+  };
+
+  const drawSectionTitle = (title: string) => {
+    ensureSpace(28);
+    page.drawText(title, {
+      x: margin,
+      y,
+      size: 12,
+      font: bold,
+      color: rgb(0.1, 0.16, 0.27),
+    });
+    y -= 8;
+    page.drawLine({
+      start: { x: margin, y },
+      end: { x: pageWidth - margin, y },
+      thickness: 1,
+      color: rgb(0.84, 0.87, 0.92),
+    });
+    y -= 18;
+  };
+
+  page.drawRectangle({
+    x: margin,
+    y: y - 74,
+    width: contentWidth,
+    height: 74,
+    color: rgb(0.95, 0.97, 1),
+    borderColor: rgb(0.83, 0.88, 0.96),
+    borderWidth: 1,
+  });
+  drawTextLine(brand, { x: margin + 16, size: 18, font: bold, color: rgb(0.08, 0.18, 0.37) });
+  y -= 24;
+  drawTextLine("Bon de livraison", { x: margin + 16, size: 22, font: bold, color: rgb(0.1, 0.13, 0.18) });
+  y -= 20;
+  drawTextLine(`Commande ${orderNumber}`, { x: margin + 16, size: 11, font: regular, color: rgb(0.35, 0.39, 0.45) });
+  page.drawText(`Genere le ${formatPdfDate(new Date())}`, {
+    x: pageWidth - margin - 155,
+    y: pageHeight - margin - 20,
+    size: 10,
+    font: regular,
+    color: rgb(0.35, 0.39, 0.45),
+  });
+  y -= 42;
+
+  drawSectionTitle("Informations commande");
+  const columnGap = 24;
+  const columnWidth = (contentWidth - columnGap) / 2;
+  const leftStartY = y;
+  drawLabelValue("Reference", `#${order.id}`, margin, columnWidth);
+  drawLabelValue("Statut commande", formatStatusLabel(order.status), margin, columnWidth);
+  drawLabelValue("Statut livraison", formatStatusLabel(deliveryStatus), margin, columnWidth);
+  const leftEndY = y;
+
+  y = leftStartY;
+  const rightX = margin + columnWidth + columnGap;
+  drawLabelValue("Paiement", formatStatusLabel(payment?.status), rightX, columnWidth);
+  drawLabelValue("Montant total", formatPdfMoney(order.total), rightX, columnWidth);
+  drawLabelValue("Date commande", formatPdfDate(order.created_at), rightX, columnWidth);
+  drawLabelValue("Suivi", trackingNumber, rightX, columnWidth);
+  const rightEndY = y;
+  y = Math.min(leftEndY, rightEndY) - 6;
+
+  drawSectionTitle("Destinataire");
+  const shippingLines = [
+    shipping?.full_name ?? order.user?.name ?? "-",
+    shipping?.line1 ?? "-",
+    shipping?.line2 ?? null,
+    [shipping?.postal_code ?? "", shipping?.city ?? ""].filter(Boolean).join(" ") || null,
+    shipping?.country ?? null,
+    shipping?.phone ? `Tel: ${shipping.phone}` : null,
+    order.user?.email ? `Email: ${order.user.email}` : null,
+  ].filter((line): line is string => Boolean(line && line.trim()));
+  drawParagraph(shippingLines.join("\n"), margin, contentWidth, { size: 11, lineHeight: 15 });
+  y -= 4;
+
+  drawSectionTitle("Articles");
+  const colName = margin;
+  const colQty = margin + 288;
+  const colUnit = margin + 350;
+  const colTotal = margin + 445;
+  const headerHeight = 24;
+
+  const drawTableHeader = () => {
+    ensureSpace(headerHeight + 8);
+    page.drawRectangle({
+      x: margin,
+      y: y - headerHeight + 6,
+      width: contentWidth,
+      height: headerHeight,
+      color: rgb(0.94, 0.95, 0.97),
+    });
+    page.drawText("Produit", { x: colName + 8, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
+    page.drawText("Qté", { x: colQty, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
+    page.drawText("PU", { x: colUnit, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
+    page.drawText("Total", { x: colTotal, y: y - 10, size: 10, font: bold, color: rgb(0.28, 0.32, 0.38) });
+    y -= 28;
+  };
+
+  drawTableHeader();
+  for (const item of order.items) {
+    const nameLines = wrapPdfText(item.name, regular, 10.5, 260);
+    const rowHeight = Math.max(22, nameLines.length * 13 + 8);
+    ensureSpace(rowHeight + 10);
+    if (y < margin + rowHeight + 20) {
+      addPage();
+      drawSectionTitle("Articles");
+      drawTableHeader();
+    }
+
+    page.drawRectangle({
+      x: margin,
+      y: y - rowHeight + 4,
+      width: contentWidth,
+      height: rowHeight,
+      color: rgb(1, 1, 1),
+      borderColor: rgb(0.91, 0.93, 0.95),
+      borderWidth: 1,
+    });
+
+    let nameY = y - 11;
+    for (const line of nameLines) {
+      page.drawText(line, {
+        x: colName + 8,
+        y: nameY,
+        size: 10.5,
+        font: regular,
+        color: rgb(0.14, 0.17, 0.22),
+      });
+      nameY -= 13;
+    }
+
+    page.drawText(String(item.qty), {
+      x: colQty,
+      y: y - 11,
+      size: 10.5,
+      font: regular,
+      color: rgb(0.14, 0.17, 0.22),
+    });
+    page.drawText(formatPdfMoney(item.price), {
+      x: colUnit,
+      y: y - 11,
+      size: 10.5,
+      font: regular,
+      color: rgb(0.14, 0.17, 0.22),
+    });
+    page.drawText(formatPdfMoney(item.total), {
+      x: colTotal,
+      y: y - 11,
+      size: 10.5,
+      font: bold,
+      color: rgb(0.1, 0.13, 0.18),
+    });
+    y -= rowHeight + 8;
+  }
+
+  ensureSpace(92);
+  page.drawRectangle({
+    x: pageWidth - margin - 200,
+    y: y - 48,
+    width: 200,
+    height: 48,
+    color: rgb(0.96, 0.98, 0.94),
+    borderColor: rgb(0.84, 0.9, 0.79),
+    borderWidth: 1,
+  });
+  page.drawText("Total commande", {
+    x: pageWidth - margin - 184,
+    y: y - 16,
+    size: 10,
+    font: regular,
+    color: rgb(0.35, 0.42, 0.29),
+  });
+  page.drawText(formatPdfMoney(order.total), {
+    x: pageWidth - margin - 184,
+    y: y - 33,
+    size: 15,
+    font: bold,
+    color: rgb(0.16, 0.31, 0.13),
+  });
+  y -= 68;
+
+  drawSectionTitle("Suivi logistique");
+  drawLabelValue("Mode de livraison", order.tag_delivery === "PRET_A_ETRE_LIVRE" ? "Pret a etre livre" : "Sur commande", margin, columnWidth);
+  drawLabelValue("Livraison estimee", estimatedDelivery ? formatPdfDate(estimatedDelivery) : "-", rightX, columnWidth);
+  y -= 4;
+  drawParagraph(
+    "Document genere depuis l'administration. A joindre au colis ou a transmettre au transporteur pour faciliter la remise.",
+    margin,
+    contentWidth,
+    { size: 9.5, color: rgb(0.42, 0.46, 0.52), lineHeight: 13 },
+  );
+
+  pages.forEach((entry, index) => {
+    entry.drawLine({
+      start: { x: margin, y: 28 },
+      end: { x: pageWidth - margin, y: 28 },
+      thickness: 1,
+      color: rgb(0.9, 0.92, 0.95),
+    });
+    entry.drawText(`Page ${index + 1}/${pages.length}`, {
+      x: pageWidth - margin - 52,
+      y: 14,
+      size: 9,
+      font: regular,
+      color: rgb(0.46, 0.5, 0.57),
+    });
+  });
 
   return Buffer.from(await pdf.save());
 }
@@ -1551,17 +1936,7 @@ async function handleAdmin(request: NextRequest, user: SessionUser, segments: st
     }
 
     if (request.method === "GET" && segments[3] === "delivery-note") {
-      const pdf = await createPdf(`Bon de livraison #${order.id}`, [
-        `Commande: #${order.id}`,
-        `Client: ${order.user?.name ?? "-"}`,
-        `Email: ${order.user?.email ?? "-"}`,
-        `Adresse: ${order.shippingAddress?.line1 ?? "-"}, ${order.shippingAddress?.city ?? "-"}`,
-        `Pays: ${order.shippingAddress?.country ?? "-"}`,
-        `Montant total: ${Number(order.total).toLocaleString("fr-FR")} FCFA`,
-        `Statut: ${order.status}`,
-        "",
-        ...order.items.map((item) => `- ${item.name} x${item.qty}`),
-      ]);
+      const pdf = await createDeliveryNotePdf(order as OrderWithRelations);
       return new NextResponse(pdf, { status: 200, headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename=bon-livraison-${order.id}.pdf` } });
     }
   }

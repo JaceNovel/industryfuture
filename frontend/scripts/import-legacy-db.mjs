@@ -1,5 +1,6 @@
 import pg from "pg";
 import { PrismaClient } from "@prisma/client";
+import { persistRemoteAssetUrl } from "./lib/media-to-blob.mjs";
 
 const legacyUrl = process.env.LEGACY_DATABASE_URL;
 const targetUrl = process.env.DATABASE_URL;
@@ -31,19 +32,31 @@ async function main() {
 
   const categoryIdsByLegacyId = new Map();
   for (const row of categoriesRes.rows) {
+    let imageUrl = row.image_url;
+    if (imageUrl) {
+      try {
+        imageUrl = await persistRemoteAssetUrl(imageUrl, {
+          directory: "categories",
+          fileName: row.slug || row.name,
+        });
+      } catch (error) {
+        console.warn(`[category:${row.slug}] ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
     const category = await prisma.category.upsert({
       where: { slug: row.slug },
       update: {
         name: row.name,
         description: row.description,
-        image_url: row.image_url,
+        image_url: imageUrl,
         icon: row.icon,
       },
       create: {
         name: row.name,
         slug: row.slug,
         description: row.description,
-        image_url: row.image_url,
+        image_url: imageUrl,
         icon: row.icon,
       },
       select: { id: true },
@@ -155,17 +168,34 @@ async function main() {
 
       const productImages = Array.isArray(row.images) ? row.images : [];
       if (productImages.length) {
+        const persistedImages = [];
+        for (const [index, image] of productImages.entries()) {
+          if (!image?.url) continue;
+
+          let imageUrl = image.url;
+          try {
+            imageUrl = await persistRemoteAssetUrl(image.url, {
+              directory: "products",
+              fileName: image.alt || `${row.slug}-${index + 1}`,
+            });
+          } catch (error) {
+            console.warn(`[product:${row.slug}] ${error instanceof Error ? error.message : String(error)}`);
+          }
+
+          persistedImages.push({
+            product_id: product.id,
+            url: imageUrl,
+            alt: image.alt ?? null,
+            sort_order: Number.isInteger(image.sort_order) ? image.sort_order : index,
+          });
+        }
+
+        if (persistedImages.length) {
         await tx.productImage.createMany({
-          data: productImages
-            .filter((image) => image && image.url)
-            .map((image, index) => ({
-              product_id: product.id,
-              url: image.url,
-              alt: image.alt ?? null,
-              sort_order: Number.isInteger(image.sort_order) ? image.sort_order : index,
-            })),
+          data: persistedImages,
         });
-        images += productImages.length;
+        images += persistedImages.length;
+        }
       }
     });
   }

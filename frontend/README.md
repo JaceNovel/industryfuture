@@ -31,6 +31,20 @@ Notes :
  - `FEDAPAY_WEBHOOK_SECRET` et `FEDAPAY_WEBHOOK_TOLERANCE` sont utilisés par le webhook serveur pour valider la signature FedaPay et resynchroniser le statut réel du paiement.
  - sans configuration FedaPay, l'application retombe sur le flux mock interne pour garder un tunnel de paiement testable.
 
+## Persistance des images
+
+Les uploads faits depuis l'admin passent par Vercel Blob et restent persistants après redéploiement.
+
+Attention : si vous importez des produits depuis une ancienne base Laravel contenant des URLs de type `/storage/...`, ces fichiers ne sont pas persistants sur Vercel par défaut. Le script d'import essaie maintenant de recopier ces médias vers Vercel Blob quand `BLOB_READ_WRITE_TOKEN` est configuré.
+
+Pour corriger des enregistrements déjà importés avec des URLs legacy cassées, utilisez :
+
+```bash
+npm run backfill:legacy-media
+```
+
+Optionnel : si les anciens fichiers ne sont plus disponibles sur `api.futurind.space`, définissez `LEGACY_ASSET_BASE_URL` vers une origine encore accessible qui expose les mêmes chemins `/storage/...` avant d'exécuter le script.
+
 ## Démarrage local
 
 ```bash
