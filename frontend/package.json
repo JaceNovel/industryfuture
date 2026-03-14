@@ -9,7 +9,9 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "import:products": "node scripts/import-products.mjs",
+    "import:legacy-db": "node scripts/import-legacy-db.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -24,6 +26,7 @@
     "lucide-react": "^0.570.0",
     "next": "16.1.6",
     "pdf-lib": "^1.17.1",
+    "pg": "^8.20.0",
     "prisma": "^6.16.2",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",

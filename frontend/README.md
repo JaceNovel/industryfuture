@@ -35,6 +35,21 @@ npm run build
 ```
 
 Le build a été validé avec succès après la migration backend.
+
+## Import catalogue
+
+Si vous récupérez un ancien export `products.json`, vous pouvez l'injecter dans la base Prisma actuelle avec :
+
+```bash
+npm run import:products -- ../tools/scraper/exports/products.json
+```
+
+Notes :
+
+ - le format attendu correspond à l'ancien export du scraper/Laravel (`name`, `slug`, `description`, `price`, `categories`, `images`)
+ - les images locales sont envoyées vers Vercel Blob si `BLOB_READ_WRITE_TOKEN` est configuré
+ - sans token Blob, les images locales sont ignorées mais les produits et catégories sont importés
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
