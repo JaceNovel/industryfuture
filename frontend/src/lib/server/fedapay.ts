@@ -59,6 +59,11 @@ function sanitizePhoneNumber(value: string | null | undefined) {
   return cleaned || null;
 }
 
+function normalizeCountryCode(value: string | null | undefined) {
+  const cleaned = String(value ?? "BJ").trim().toUpperCase().replace(/[^A-Z]/g, "");
+  return cleaned.length === 2 ? cleaned : "BJ";
+}
+
 function setupFedaPay() {
   const apiKey = process.env.FEDAPAY_API_KEY?.trim() || process.env.FEDAPAY_SECRET_KEY?.trim();
   if (!apiKey) return false;
@@ -139,7 +144,7 @@ export async function createFedaPaySession(input: FedapayTransactionInput): Prom
   let sendNowResponse: Record<string, unknown> | null = null;
   const autoSendMode = process.env.FEDAPAY_AUTO_SEND_MODE?.trim();
   const phoneNumber = sanitizePhoneNumber(input.customer.phone);
-  const country = (input.customer.country ?? "BJ").trim().toUpperCase();
+  const country = normalizeCountryCode(input.customer.country);
   if (autoSendMode && tokenObject.token && phoneNumber) {
     const response = await transaction.sendNowWithToken(autoSendMode, tokenObject.token, {
       phone_number: {

@@ -233,6 +233,26 @@ function orderMetadata(tag_delivery: string, extra: Record<string, unknown> = {}
   };
 }
 
+function deriveOrderStatusFromDeliveryStatus(currentStatus: string, deliveryStatus: string | null | undefined) {
+  const normalized = String(deliveryStatus ?? "").trim().toLowerCase();
+  if (!normalized) return currentStatus;
+  if (normalized === "delivered") return "delivered";
+  if (normalized === "out_for_delivery" || normalized === "ready_for_pickup") return "shipped";
+  if (normalized === "canceled") return "canceled";
+  if (normalized === "pending" && ["shipped", "delivered", "canceled"].includes(currentStatus)) {
+    return "preparing";
+  }
+  return currentStatus;
+}
+
+function deriveTrackingStatus(orderStatus: string, deliveryStatus: string | null | undefined) {
+  const normalizedDelivery = String(deliveryStatus ?? "").trim().toLowerCase();
+  if (normalizedDelivery === "delivered") return "delivered";
+  if (normalizedDelivery === "out_for_delivery" || normalizedDelivery === "ready_for_pickup") return "shipped";
+  if (normalizedDelivery === "canceled") return "canceled";
+  return String(orderStatus ?? "pending").toLowerCase();
+}
+
 async function requireAuth(request: NextRequest) {
   const user = await getSessionUser(request);
   if (!user) return { response: fail("Unauthorized", 401), user: null };
@@ -423,6 +443,89 @@ function canUseMockPayments() {
   return process.env.NODE_ENV !== "production";
 }
 
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+
+  const record = asRecord(error);
+  if (!record) return "";
+
+  const directMessage = typeof record.message === "string" ? record.message.trim() : "";
+  if (directMessage) return directMessage;
+
+  const response = asRecord(record.response);
+  if (response) {
+    const responseMessage = typeof response.message === "string" ? response.message.trim() : "";
+    if (responseMessage) return responseMessage;
+
+    const data = asRecord(response.data);
+    if (data && typeof data.message === "string" && data.message.trim()) {
+      return data.message.trim();
+    }
+
+    const body = asRecord(response.body);
+    if (body && typeof body.message === "string" && body.message.trim()) {
+      return body.message.trim();
+    }
+  }
+
+  return "";
+}
+
+function getPaymentInitializationFailure(error: unknown) {
+  const rawMessage = extractErrorMessage(error);
+  const normalized = rawMessage.toLowerCase();
+
+  if (normalized.includes("not configured")) {
+    return {
+      status: 503,
+      userMessage: "FedaPay n'est pas configuré sur le serveur.",
+      rawMessage: rawMessage || "FedaPay is not configured.",
+    };
+  }
+
+  if (normalized.includes("greater than zero") || normalized.includes("must be positive") || normalized.includes("montant") || normalized.includes("amount")) {
+    return {
+      status: 422,
+      userMessage: "Le montant de la commande doit être supérieur à 0.",
+      rawMessage: rawMessage || "Payment amount must be greater than zero.",
+    };
+  }
+
+  if (normalized.includes("email") || normalized.includes("customer") || normalized.includes("phone")) {
+    return {
+      status: 422,
+      userMessage: "Les informations client de paiement sont invalides.",
+      rawMessage: rawMessage || "Invalid payment customer information.",
+    };
+  }
+
+  return {
+    status: 502,
+    userMessage: "Le paiement n'a pas pu être initialisé. Vérifiez le montant et les informations client.",
+    rawMessage: rawMessage || "Unable to initialize hosted payment.",
+  };
+}
+
+async function failHostedPaymentInitialization(paymentId: number, error: unknown) {
+  const failure = getPaymentInitializationFailure(error);
+  const current = await prisma.payment.findUnique({ where: { id: paymentId } });
+  const metadata = ((current?.metadata as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      metadata: toJsonInput({
+        ...metadata,
+        payment_init_error: failure.rawMessage,
+        payment_init_failed_at: new Date().toISOString(),
+      }),
+    },
+  }).catch(() => null);
+
+  await setPaymentStatus(paymentId, "failed").catch(() => null);
+  return fail(failure.userMessage, failure.status);
+}
+
 async function initializeHostedPayment(params: {
   paymentId: number;
   orderId: number;
@@ -434,6 +537,10 @@ async function initializeHostedPayment(params: {
   customerCountry?: string | null;
   extraMetadata?: Record<string, unknown>;
 }) {
+  if (!Number.isFinite(params.amount) || params.amount <= 0) {
+    throw new Error("Payment amount must be greater than zero.");
+  }
+
   if (!isFedaPayConfigured()) {
     if (!canUseMockPayments()) {
       throw new Error("FedaPay is not configured on the server.");
@@ -1379,6 +1486,9 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
   }
 
   const subtotal = cart.items.reduce((sum, item) => sum + Number(item.product.price) * item.qty, 0);
+  if (!Number.isFinite(subtotal) || subtotal <= 0) {
+    return fail("Le montant de la commande doit être supérieur à 0.", 422);
+  }
   const tagDelivery = cart.items.some((item) => item.product.tag_delivery === "PRET_A_ETRE_LIVRE")
     ? "PRET_A_ETRE_LIVRE"
     : "SUR_COMMANDE";
@@ -1425,17 +1535,22 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
     return { orderId: order.id, paymentId: payment.id };
   });
 
-  const paymentSession = await initializeHostedPayment({
-    paymentId: result.paymentId,
-    orderId: result.orderId,
-    amount: subtotal,
-    description: `Paiement commande #${result.orderId}`,
-    customerName: user.name,
-    customerEmail: user.email,
-    customerPhone: payload.customer_phone ?? payload.shipping_address?.phone ?? null,
-    customerCountry: payload.customer_country ?? payload.shipping_address?.country ?? null,
-    extraMetadata: { type: "order" },
-  });
+  let paymentSession;
+  try {
+    paymentSession = await initializeHostedPayment({
+      paymentId: result.paymentId,
+      orderId: result.orderId,
+      amount: subtotal,
+      description: `Paiement commande #${result.orderId}`,
+      customerName: user.name,
+      customerEmail: user.email,
+      customerPhone: payload.customer_phone ?? payload.shipping_address?.phone ?? null,
+      customerCountry: payload.customer_country ?? payload.shipping_address?.country ?? null,
+      extraMetadata: { type: "order" },
+    });
+  } catch (error) {
+    return failHostedPaymentInitialization(result.paymentId, error);
+  }
 
   await prisma.payment.update({
     where: { id: result.paymentId },
@@ -1520,17 +1635,22 @@ async function handleOrders(request: NextRequest, user: SessionUser, segments: s
       });
     }
 
-    const paymentSession = await initializeHostedPayment({
-      paymentId: payment.id,
-      orderId: order.id,
-      amount: Number(order.total),
-      description: `Paiement commande #${order.id}`,
-      customerName: order.user.name,
-      customerEmail: order.user.email,
-      customerPhone: order.shippingAddress?.phone ?? null,
-      customerCountry: order.shippingAddress?.country ?? null,
-      extraMetadata: { type: "order" },
-    });
+    let paymentSession;
+    try {
+      paymentSession = await initializeHostedPayment({
+        paymentId: payment.id,
+        orderId: order.id,
+        amount: Number(order.total),
+        description: `Paiement commande #${order.id}`,
+        customerName: order.user.name,
+        customerEmail: order.user.email,
+        customerPhone: order.shippingAddress?.phone ?? null,
+        customerCountry: order.shippingAddress?.country ?? null,
+        extraMetadata: { type: "order" },
+      });
+    } catch (error) {
+      return failHostedPaymentInitialization(payment.id, error);
+    }
 
     await prisma.payment.update({
       where: { id: payment.id },
@@ -1645,15 +1765,20 @@ async function handleImportRequests(request: NextRequest, user: SessionUser, seg
         metadata: toJsonInput({ type: "import_request", import_request_id: item.id }),
       },
     });
-    const paymentSession = await initializeHostedPayment({
-      paymentId: payment.id,
-      orderId: order.id,
-      amount: Number(item.admin_price),
-      description: `Paiement service d'import #${item.id}`,
-      customerName: user.name,
-      customerEmail: user.email,
-      extraMetadata: { type: "import_request", import_request_id: item.id },
-    });
+    let paymentSession;
+    try {
+      paymentSession = await initializeHostedPayment({
+        paymentId: payment.id,
+        orderId: order.id,
+        amount: Number(item.admin_price),
+        description: `Paiement service d'import #${item.id}`,
+        customerName: user.name,
+        customerEmail: user.email,
+        extraMetadata: { type: "import_request", import_request_id: item.id },
+      });
+    } catch (error) {
+      return failHostedPaymentInitialization(payment.id, error);
+    }
     await prisma.payment.update({
       where: { id: payment.id },
       data: {
@@ -1956,18 +2081,26 @@ async function handleAdmin(request: NextRequest, user: SessionUser, segments: st
       }
 
       const currentMetadata = ((order.metadata as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+      const nextOrderStatus = payload.delivery_status
+        ? deriveOrderStatusFromDeliveryStatus(payload.status ?? order.status, payload.delivery_status)
+        : payload.status;
       const updated = await prisma.order.update({
         where: { id: orderId },
         data: {
-          ...(payload.status ? { status: payload.status } : {}),
+          ...(nextOrderStatus ? { status: nextOrderStatus } : {}),
           ...(payload.tag_delivery ? { tag_delivery: payload.tag_delivery } : {}),
           ...(payload.delivery_status
             ? {
                 metadata: {
                   ...currentMetadata,
                   delivery_status: payload.delivery_status,
-                  ...(payload.delivery_status === "delivered" ? { delivered_at: new Date().toISOString() } : {}),
-                  ...(payload.delivery_status === "out_for_delivery" ? { shipped_at: new Date().toISOString() } : {}),
+                  preparing_at: String(currentMetadata.preparing_at ?? new Date().toISOString()),
+                  ...(["out_for_delivery", "ready_for_pickup", "delivered"].includes(payload.delivery_status)
+                    ? { shipped_at: String(currentMetadata.shipped_at ?? new Date().toISOString()) }
+                    : {}),
+                  ...(payload.delivery_status === "delivered"
+                    ? { delivered_at: String(currentMetadata.delivered_at ?? new Date().toISOString()) }
+                    : {}),
                 },
               }
             : {}),
@@ -2325,12 +2458,13 @@ async function handleTracking(request: NextRequest, segments: string[]) {
   const estimatedDelivery = typeof meta.estimated_delivery === "string"
     ? meta.estimated_delivery
     : new Date(createdAt.getTime() + (order.tag_delivery === "PRET_A_ETRE_LIVRE" ? 3 : 7) * 24 * 60 * 60 * 1000).toISOString();
-  const status = String(order.status ?? "pending").toLowerCase();
+  const deliveryStatus = typeof meta.delivery_status === "string" ? meta.delivery_status : null;
+  const status = deriveTrackingStatus(order.status, deliveryStatus);
 
   return ok({
     tracking_number: trackingNumber,
     order_number: String(meta.order_number ?? `IF${order.id}`),
-    status: order.status,
+    status,
     order_date: createdAt.toISOString(),
     estimated_delivery: estimatedDelivery,
     steps: [
