@@ -41,6 +41,15 @@ type FedapayTransactionLike = {
 
 type FedaPayRequestMethod = "GET" | "POST";
 
+function normalizeEmail(value: string | null | undefined) {
+  const cleaned = String(value ?? "").trim().toLowerCase();
+  if (!cleaned || !cleaned.includes("@")) {
+    return null;
+  }
+
+  return cleaned;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -133,6 +142,31 @@ async function fedapayRequest<T>(path: string, method: FedaPayRequestMethod, bod
   return data as T;
 }
 
+async function createFedapayCustomer(input: { firstname: string; lastname: string; email?: string | null }) {
+  const basePayload = {
+    firstname: input.firstname,
+    lastname: input.lastname,
+  };
+
+  try {
+    return await fedapayRequest<{ "v1/customer"?: FedapayTransactionLike & { email?: string; phone?: string } }>("/customers", "POST", {
+      ...basePayload,
+      ...(input.email ? { email: input.email } : {}),
+    });
+  } catch (error) {
+    if (!input.email) {
+      throw error;
+    }
+
+    const status = (error as { response?: { status?: number } } | null)?.response?.status;
+    if (status !== 400 && status !== 422) {
+      throw error;
+    }
+
+    return fedapayRequest<{ "v1/customer"?: FedapayTransactionLike & { email?: string; phone?: string } }>("/customers", "POST", basePayload);
+  }
+}
+
 export function isFedaPayConfigured() {
   return Boolean(getFedaPayApiKey());
 }
@@ -176,12 +210,8 @@ export async function createFedaPaySession(input: FedapayTransactionInput): Prom
   }
 
   const { firstname, lastname } = splitCustomerName(input.customer.name);
-  const customerResponse = await fedapayRequest<{ "v1/customer"?: FedapayTransactionLike & { email?: string; phone?: string } }>("/customers", "POST", {
-    firstname,
-    lastname,
-    email: input.customer.email,
-    ...(sanitizePhoneNumber(input.customer.phone) ? { phone: sanitizePhoneNumber(input.customer.phone) } : {}),
-  });
+  const customerEmail = normalizeEmail(input.customer.email);
+  const customerResponse = await createFedapayCustomer({ firstname, lastname, email: customerEmail });
   const customer = isRecord(customerResponse) && isRecord(customerResponse["v1/customer"])
     ? (customerResponse["v1/customer"] as Record<string, unknown>)
     : null;
