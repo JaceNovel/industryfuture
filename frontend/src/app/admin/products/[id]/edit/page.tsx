@@ -36,6 +36,12 @@ export default function AdminProductEditPage() {
   const [delayAirMax, setDelayAirMax] = useState("10");
   const [delaySeaMin, setDelaySeaMin] = useState("30");
   const [delaySeaMax, setDelaySeaMax] = useState("50");
+  const [localMinQty, setLocalMinQty] = useState("1");
+  const [airMinQty, setAirMinQty] = useState("2");
+  const [seaMinQty, setSeaMinQty] = useState("10");
+  const [localPricingMode, setLocalPricingMode] = useState<"lot" | "unit">("lot");
+  const [airPricingMode, setAirPricingMode] = useState<"lot" | "unit">("lot");
+  const [seaPricingMode, setSeaPricingMode] = useState<"lot" | "unit">("unit");
   const [tagDelivery, setTagDelivery] = useState<"PRET_A_ETRE_LIVRE" | "SUR_COMMANDE">("SUR_COMMANDE");
   const [categorySlug, setCategorySlug] = useState("");
   const [brand, setBrand] = useState("");
@@ -60,12 +66,19 @@ export default function AdminProductEditPage() {
     const meta = (p.metadata ?? {}) as Record<string, unknown>;
     const t = (meta.transport_prices ?? {}) as Record<string, unknown>;
     const delays = (meta.transport_delivery_delays ?? {}) as Record<string, unknown>;
+    const quantityPricing = (meta.quantity_pricing ?? {}) as Record<string, unknown>;
     setPriceAir(t.air != null ? String(t.air) : "");
     setPriceSea(t.sea != null ? String(t.sea) : "");
     setDelayAirMin(delays.air_min != null ? String(delays.air_min) : "5");
     setDelayAirMax(delays.air_max != null ? String(delays.air_max) : "10");
     setDelaySeaMin(delays.sea_min != null ? String(delays.sea_min) : "30");
     setDelaySeaMax(delays.sea_max != null ? String(delays.sea_max) : "50");
+    setLocalMinQty(String(Number(quantityPricing.local_min_qty ?? meta.minimum_order_quantity ?? 1) || 1));
+    setAirMinQty(String(Number(quantityPricing.air_min_qty ?? 2) || 2));
+    setSeaMinQty(String(Number(quantityPricing.sea_min_qty ?? 10) || 10));
+    setLocalPricingMode(quantityPricing.local_base_mode === "unit" ? "unit" : "lot");
+    setAirPricingMode(quantityPricing.air_base_mode === "unit" ? "unit" : "lot");
+    setSeaPricingMode(quantityPricing.sea_base_mode === "lot" ? "lot" : "unit");
     setTagDelivery((p.tag_delivery ?? "SUR_COMMANDE") as "PRET_A_ETRE_LIVRE" | "SUR_COMMANDE");
 
     setBrand(typeof meta.brand === "string" ? meta.brand : "");
@@ -113,6 +126,18 @@ export default function AdminProductEditPage() {
       const parsedDelayAirMax = delayAirMax.trim() ? Number(delayAirMax) : 10;
       const parsedDelaySeaMin = delaySeaMin.trim() ? Number(delaySeaMin) : 30;
       const parsedDelaySeaMax = delaySeaMax.trim() ? Number(delaySeaMax) : 50;
+      const parsedLocalMinQty = localMinQty.trim() ? Number(localMinQty) : 1;
+      const parsedAirMinQty = airMinQty.trim() ? Number(airMinQty) : 2;
+      const parsedSeaMinQty = seaMinQty.trim() ? Number(seaMinQty) : 10;
+      metadata.minimum_order_quantity = Number.isFinite(parsedLocalMinQty) && parsedLocalMinQty > 0 ? parsedLocalMinQty : 1;
+      metadata.quantity_pricing = {
+        local_min_qty: Number.isFinite(parsedLocalMinQty) && parsedLocalMinQty > 0 ? parsedLocalMinQty : 1,
+        air_min_qty: Number.isFinite(parsedAirMinQty) && parsedAirMinQty > 0 ? parsedAirMinQty : 2,
+        sea_min_qty: Number.isFinite(parsedSeaMinQty) && parsedSeaMinQty > 0 ? parsedSeaMinQty : 10,
+        local_base_mode: localPricingMode,
+        air_base_mode: airPricingMode,
+        sea_base_mode: seaPricingMode,
+      };
       metadata.transport_delivery_delays = {
         air_min: Number.isFinite(parsedDelayAirMin) ? parsedDelayAirMin : 5,
         air_max: Number.isFinite(parsedDelayAirMax) ? parsedDelayAirMax : 10,
@@ -230,6 +255,68 @@ export default function AdminProductEditPage() {
               <div className="grid gap-2">
                 <Label>Délai bateau (max jours)</Label>
                 <Input value={delaySeaMax} onChange={(e) => setDelaySeaMax(e.target.value)} inputMode="numeric" />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/70 p-4">
+              <div className="text-sm font-semibold text-foreground">Quantités minimum & mode de calcul</div>
+              <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                  <div className="text-sm font-medium">Disponible sur place</div>
+                  <div className="grid gap-2">
+                    <Label>Quantité minimum</Label>
+                    <Input value={localMinQty} onChange={(e) => setLocalMinQty(e.target.value)} inputMode="numeric" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Prix de base</Label>
+                    <select
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      value={localPricingMode}
+                      onChange={(e) => setLocalPricingMode(e.target.value as "lot" | "unit")}
+                    >
+                      <option value="lot">Pour le lot minimum</option>
+                      <option value="unit">Par pièce</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                  <div className="text-sm font-medium">Livraison avion</div>
+                  <div className="grid gap-2">
+                    <Label>Quantité minimum</Label>
+                    <Input value={airMinQty} onChange={(e) => setAirMinQty(e.target.value)} inputMode="numeric" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Prix de base</Label>
+                    <select
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      value={airPricingMode}
+                      onChange={(e) => setAirPricingMode(e.target.value as "lot" | "unit")}
+                    >
+                      <option value="lot">Pour le lot minimum</option>
+                      <option value="unit">Par pièce</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                  <div className="text-sm font-medium">Livraison bateau</div>
+                  <div className="grid gap-2">
+                    <Label>Quantité minimum</Label>
+                    <Input value={seaMinQty} onChange={(e) => setSeaMinQty(e.target.value)} inputMode="numeric" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Prix de base</Label>
+                    <select
+                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                      value={seaPricingMode}
+                      onChange={(e) => setSeaPricingMode(e.target.value as "lot" | "unit")}
+                    >
+                      <option value="lot">Pour le lot minimum</option>
+                      <option value="unit">Par pièce</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -11,13 +11,25 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/industryfuture?schema=public"
 AUTH_SECRET="une-cle-longue-et-secrete"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 BLOB_READ_WRITE_TOKEN=""
+FEDAPAY_API_KEY=""
+FEDAPAY_SECRET_KEY=""
+FEDAPAY_ENV="sandbox"
+FEDAPAY_ACCOUNT_ID=""
+FEDAPAY_AUTO_SEND_MODE=""
+FEDAPAY_WEBHOOK_SECRET=""
+FEDAPAY_WEBHOOK_TOLERANCE=""
 ```
 
 Notes :
 
  - `DATABASE_URL` doit pointer vers une base PostgreSQL compatible Vercel/Neon/Supabase.
  - `BLOB_READ_WRITE_TOKEN` est requis pour les uploads admin et les photos de demandes d'import.
- - le flux de paiement est actuellement en mode mock interne, ce qui permet de valider le tunnel complet sans dépendre du backend Laravel.
+ - le code accepte `FEDAPAY_API_KEY` ou `FEDAPAY_SECRET_KEY`. Si l'un des deux est défini, le checkout, le repaiement de commande et le paiement des demandes d'import passent par FedaPay.
+ - `FEDAPAY_ENV` accepte `sandbox` ou `live`.
+ - `FEDAPAY_ACCOUNT_ID` est optionnel selon votre compte/marchand FedaPay.
+ - `FEDAPAY_AUTO_SEND_MODE` est optionnel. Renseignez une valeur comme `mtn_open`, `moov`, `celtiis` ou un autre mode supporté par votre compte pour déclencher `sendNowWithToken(...)` automatiquement quand un numéro client est disponible.
+ - `FEDAPAY_WEBHOOK_SECRET` et `FEDAPAY_WEBHOOK_TOLERANCE` sont utilisés par le webhook serveur pour valider la signature FedaPay et resynchroniser le statut réel du paiement.
+ - sans configuration FedaPay, l'application retombe sur le flux mock interne pour garder un tunnel de paiement testable.
 
 ## Démarrage local
 

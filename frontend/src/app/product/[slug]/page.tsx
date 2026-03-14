@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ShoppingCart, Star, Zap } from "lucide-react";
+import { ArrowLeft, Minus, Plus, ShoppingCart, Star, Zap } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import { flyToCart } from "@/lib/fly-to-cart";
 import type { Product, ProductReview, ProductReviewsResponse } from "@/lib/types";
@@ -22,6 +22,10 @@ type ProductsResponse = {
   current_page: number;
   last_page: number;
 };
+
+type PricingMode = "local" | "air" | "sea";
+
+type BasePricingMode = "lot" | "unit";
 
 function FacebookLogo(props: SVGProps<SVGSVGElement>) {
   return (
@@ -121,6 +125,53 @@ function getMinimumQuantity(product: Product) {
   return Number.isFinite(min) && min > 0 ? min : 1;
 }
 
+function getQuantityPricing(product: Product) {
+  const metadata = (product.metadata ?? {}) as Record<string, unknown>;
+  const rules = (metadata.quantity_pricing ?? {}) as Record<string, unknown>;
+
+  const normalizeMode = (value: unknown, fallback: BasePricingMode): BasePricingMode => (value === "unit" ? "unit" : value === "lot" ? "lot" : fallback);
+  const normalizeQty = (value: unknown, fallback: number) => {
+    const quantity = Number(value ?? fallback);
+    return Number.isFinite(quantity) && quantity > 0 ? quantity : fallback;
+  };
+
+  return {
+    local: {
+      minQty: normalizeQty(rules.local_min_qty, getMinimumQuantity(product)),
+      baseMode: normalizeMode(rules.local_base_mode, "lot"),
+      shippingFee: 0,
+    },
+    air: {
+      minQty: normalizeQty(rules.air_min_qty, 2),
+      baseMode: normalizeMode(rules.air_base_mode, "lot"),
+      shippingFee: getTransportPrices(product).air ?? 0,
+    },
+    sea: {
+      minQty: normalizeQty(rules.sea_min_qty, 10),
+      baseMode: normalizeMode(rules.sea_base_mode, "unit"),
+      shippingFee: getTransportPrices(product).sea ?? 0,
+    },
+  };
+}
+
+function calculatePricing(basePrice: number, requestedQty: number, config: { minQty: number; baseMode: BasePricingMode; shippingFee: number }, mode: PricingMode) {
+  const minQty = Math.max(1, config.minQty);
+  const sanitizedQty = Math.max(minQty, requestedQty);
+  const lotCount = Math.ceil(sanitizedQty / minQty);
+  const baseTotal = config.baseMode === "unit" ? basePrice * sanitizedQty : basePrice * lotCount;
+  const shippingTotal = mode === "local" ? 0 : config.shippingFee * lotCount;
+
+  return {
+    quantity: sanitizedQty,
+    minQty,
+    lotCount,
+    baseMode: config.baseMode,
+    baseTotal,
+    shippingTotal,
+    total: baseTotal + shippingTotal,
+  };
+}
+
 function normalizeDescription(description: string | null | undefined) {
   return String(description ?? "")
     .split(/\n+/)
@@ -164,6 +215,7 @@ export default function ProductPage() {
   const touchEndXRef = useRef<number | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [transportMode, setTransportMode] = useState<"air" | "sea">("air");
+  const [quantity, setQuantity] = useState(1);
   const [reviewTab, setReviewTab] = useState<"reviews" | "form">("reviews");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewTitle, setReviewTitle] = useState("");
@@ -194,6 +246,7 @@ export default function ProductPage() {
 
   useEffect(() => {
     setSelectedImageIndex(0);
+    setQuantity(1);
   }, [params.slug]);
 
   useEffect(() => {
@@ -209,9 +262,9 @@ export default function ProductPage() {
   }, [product]);
 
   const addToCart = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (qty: number) => {
       if (!product?.id) throw new Error("Produit introuvable.");
-      return apiPost("/api/cart", { product_id: product.id, qty: 1 });
+      return apiPost("/api/cart", { product_id: product.id, qty });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
@@ -224,13 +277,23 @@ export default function ProductPage() {
   const tags = product ? getTags(product) : [];
   const transportPrices = product ? getTransportPrices(product) : { air: null, sea: null };
   const transportDelays = product ? getTransportDelays(product) : { air: null, sea: null };
+  const quantityPricing = product
+    ? getQuantityPricing(product)
+    : {
+        local: { minQty: 1, baseMode: "lot" as BasePricingMode, shippingFee: 0 },
+        air: { minQty: 2, baseMode: "lot" as BasePricingMode, shippingFee: 0 },
+        sea: { minQty: 10, baseMode: "unit" as BasePricingMode, shippingFee: 0 },
+      };
   const categoryName = product?.categories?.[0]?.name ?? "SPORT ET LOISIR";
   const stockValue = typeof product?.stock === "number" ? product.stock : 0;
-  const minimumQuantity = product ? getMinimumQuantity(product) : 1;
+  const isLocalOnly = product?.tag_delivery === "PRET_A_ETRE_LIVRE";
+  const activePricingMode: PricingMode = isLocalOnly ? "local" : transportMode;
+  const activePricingConfig = quantityPricing[activePricingMode];
   const deliveryLabel = product?.tag_delivery === "PRET_A_ETRE_LIVRE" ? "PRET A ETRE LIVRE" : "SUR COMMANDE";
   const selectedTransportPrice = transportMode === "air" ? transportPrices.air : transportPrices.sea;
   const selectedTransportDelay = transportMode === "air" ? transportDelays.air : transportDelays.sea;
-  const displayPrice = selectedTransportPrice ?? product?.price ?? 0;
+  const pricingSummary = calculatePricing(Number(product?.price ?? 0), quantity, activePricingConfig, activePricingMode);
+  const displayPrice = pricingSummary.total;
   const deliveryEstimateNote = product ? getDeliveryEstimateNote(product) : "";
   const relatedProducts = useMemo(() => {
     const all = relatedQuery.data?.data ?? [];
@@ -241,6 +304,10 @@ export default function ProductPage() {
   const reviewTotal = reviewsMeta?.total ?? 0;
   const reviewAverage = reviewsMeta?.average ?? 0;
   const reviewBreakdown = reviewsMeta?.breakdown ?? { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+  useEffect(() => {
+    setQuantity((current) => Math.max(activePricingConfig.minQty, current || activePricingConfig.minQty));
+  }, [activePricingConfig.minQty]);
 
   const createReview = useMutation({
     mutationFn: async () => {
@@ -264,6 +331,9 @@ export default function ProductPage() {
   });
 
   const deliveryEstimateText = useMemo(() => {
+    if (isLocalOnly) {
+      return "Livraison locale: calculée selon votre position au checkout";
+    }
     if (selectedTransportDelay) {
       const [min, max] = selectedTransportDelay;
       const range = min === max ? `${min} jour${min > 1 ? "s" : ""}` : `${min}-${max} jours`;
@@ -273,11 +343,11 @@ export default function ProductPage() {
       return `Livraison estimee: ${product.delivery_delay_days} jour${product.delivery_delay_days > 1 ? "s" : ""}`;
     }
     return null;
-  }, [product?.delivery_delay_days, selectedTransportDelay, transportMode]);
+  }, [isLocalOnly, product?.delivery_delay_days, selectedTransportDelay, transportMode]);
 
   async function handleAddToCart(button: HTMLElement, redirectToCheckout: boolean) {
     try {
-      await addToCart.mutateAsync();
+      await addToCart.mutateAsync(pricingSummary.quantity);
       flyToCart(button);
       if (redirectToCheckout) {
         router.push("/checkout");
@@ -295,7 +365,7 @@ export default function ProductPage() {
     { label: "Catégorie", value: categoryName },
     { label: "Marque", value: brand ?? "Non renseignée" },
     { label: "Stock", value: `${stockValue} unités` },
-    { label: "Quantité Min:", value: String(minimumQuantity) },
+    { label: "Quantité Min:", value: `${activePricingConfig.minQty} pcs` },
     { label: "Tags", value: tags.length ? tags.join(", ") : "Aucun" },
   ];
   const canSubmitReview = reviewRating > 0 && reviewTitle.trim() && reviewBody.trim() && reviewName.trim() && reviewEmail.trim();
@@ -334,6 +404,21 @@ export default function ProductPage() {
 
     showPreviousImage();
   }
+
+  const pricingExplanation = useMemo(() => {
+    if (activePricingMode === "local") {
+      return pricingSummary.baseMode === "unit"
+        ? `Prix de base appliqué par pièce. Minimum ${pricingSummary.minQty} pcs.`
+        : `Prix de base appliqué pour chaque lot minimum de ${pricingSummary.minQty} pcs.`;
+    }
+
+    const modeLabel = activePricingMode === "air" ? "avion" : "bateau";
+    const baseText = pricingSummary.baseMode === "unit"
+      ? `${formatPriceCFA(product?.price)} x ${pricingSummary.quantity}`
+      : `${formatPriceCFA(product?.price)} x ${pricingSummary.lotCount} lot${pricingSummary.lotCount > 1 ? "s" : ""}`;
+    const shippingText = `${formatPriceCFA(activePricingConfig.shippingFee)} x ${pricingSummary.lotCount} ${modeLabel}`;
+    return `${baseText} + ${shippingText}`;
+  }, [activePricingConfig.shippingFee, activePricingMode, pricingSummary.baseMode, pricingSummary.lotCount, pricingSummary.minQty, pricingSummary.quantity, product?.price]);
 
   return (
     <main className="mx-auto w-full max-w-[1280px] px-4 py-4 md:px-6 md:py-5">
@@ -441,9 +526,10 @@ export default function ProductPage() {
                 <h1 className="text-[2.1rem] font-semibold leading-[1.05] tracking-[-0.03em] text-slate-950 md:text-[3.15rem]">{product.name}</h1>
                 <div className="mt-4 text-[2rem] font-bold leading-none text-[#ff1e1e] md:text-[2.95rem]">{formatPriceCFA(displayPrice)}</div>
                 <p className="mt-2 text-[15px] text-slate-500">Prix de base: {formatPriceCFA(product.price)}</p>
+                <p className="mt-1 text-[14px] text-slate-500">{pricingExplanation}</p>
               </div>
 
-              {(transportPrices.air != null || transportPrices.sea != null) ? (
+              {!isLocalOnly && (transportPrices.air != null || transportPrices.sea != null) ? (
                 <div>
                   <h2 className="text-[1.1rem] font-semibold text-slate-950">Mode de livraison</h2>
                   <div className="mt-2.5 flex flex-wrap gap-2.5">
@@ -466,6 +552,38 @@ export default function ProductPage() {
                   </div>
                 </div>
               ) : null}
+
+              <div>
+                <h2 className="text-[1.1rem] font-semibold text-slate-950">Quantité demandée</h2>
+                <div className="mt-2.5 flex items-center gap-3">
+                  <div className="inline-flex items-center rounded-[10px] border border-slate-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((current) => Math.max(activePricingConfig.minQty, current - 1))}
+                      className="inline-flex h-11 w-11 items-center justify-center text-slate-700"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <input
+                      value={quantity}
+                      onChange={(event) => {
+                        const next = Number(event.target.value || activePricingConfig.minQty);
+                        setQuantity(Number.isFinite(next) ? Math.max(activePricingConfig.minQty, next) : activePricingConfig.minQty);
+                      }}
+                      inputMode="numeric"
+                      className="h-11 w-16 border-x border-slate-200 text-center text-[15px] font-semibold text-slate-950 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((current) => current + 1)}
+                      className="inline-flex h-11 w-11 items-center justify-center text-slate-700"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="text-[14px] text-slate-500">Minimum requis: {activePricingConfig.minQty} pcs</p>
+                </div>
+              </div>
 
               <div className="max-w-[39rem] text-[15px] leading-[1.95] text-slate-700">
                 {descriptionText || "La description de cet article sera bientot enrichie."}
@@ -507,6 +625,7 @@ export default function ProductPage() {
               {deliveryEstimateText ? (
                 <div className="rounded-[16px] border border-slate-200 bg-[#f7fbff] px-5 py-4">
                   <p className="text-[15px] font-medium text-slate-900">{deliveryEstimateText}</p>
+                  <p className="mt-2 text-[15px] text-slate-600">Total estimé pour {pricingSummary.quantity} pcs : <span className="font-semibold text-slate-950">{formatPriceCFA(pricingSummary.total)}</span></p>
                   <p className="mt-2 text-[15px] text-slate-500">{deliveryEstimateNote}</p>
                 </div>
               ) : null}

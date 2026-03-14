@@ -12,6 +12,15 @@ import {
   type SessionUser,
 } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
+import {
+  constructFedaPayWebhookEvent,
+  createFedaPaySession,
+  extractFedaPayMetadata,
+  isFedaPayConfigured,
+  isFedaPayWebhookConfigured,
+  mapFedaPayStatus,
+  retrieveFedaPayTransaction,
+} from "@/lib/server/fedapay";
 
 const money = z.coerce.number().finite().nonnegative();
 
@@ -203,6 +212,10 @@ function getAppUrl() {
   return "http://localhost:3000";
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+}
+
 function paginationFrom(request: NextRequest, defaults = { page: 1, perPage: 20, max: 100 }) {
   const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? defaults.page) || defaults.page);
   const rawPerPage = Number(request.nextUrl.searchParams.get("perPage") ?? defaults.perPage) || defaults.perPage;
@@ -313,10 +326,10 @@ async function setPaymentStatus(paymentId: number, status: "completed" | "failed
     data: {
       status,
       paid_at: status === "completed" ? new Date() : null,
-      metadata: {
+      metadata: toJsonInput({
         ...metadata,
-        mock: true,
-      },
+        ...(payment.provider === "mock" ? { mock: true } : {}),
+      }),
     },
     include: { order: true },
   });
@@ -373,12 +386,184 @@ async function setPaymentStatus(paymentId: number, status: "completed" | "failed
   return updatedPayment;
 }
 
-function mockPaymentUrl(orderId: number, paymentId: number) {
+function buildPaymentReturnUrl(orderId: number, paymentId: number, extra: Record<string, string> = {}) {
   const url = new URL(`${getAppUrl()}/payment/return`);
   url.searchParams.set("order_id", String(orderId));
   url.searchParams.set("payment_id", String(paymentId));
-  url.searchParams.set("mock", "1");
+  for (const [key, value] of Object.entries(extra)) {
+    url.searchParams.set(key, value);
+  }
   return url.toString();
+}
+
+async function initializeHostedPayment(params: {
+  paymentId: number;
+  orderId: number;
+  amount: number;
+  description: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+  customerCountry?: string | null;
+  extraMetadata?: Record<string, unknown>;
+}) {
+  if (!isFedaPayConfigured()) {
+    const paymentUrl = buildPaymentReturnUrl(params.orderId, params.paymentId, { mock: "1" });
+    return {
+      provider: "mock" as const,
+      paymentUrl,
+      metadata: {
+        ...(params.extraMetadata ?? {}),
+        mode: "mock",
+        payment_url: paymentUrl,
+      },
+    };
+  }
+
+  const session = await createFedaPaySession({
+    amount: params.amount,
+    description: params.description,
+    callbackUrl: buildPaymentReturnUrl(params.orderId, params.paymentId),
+    customer: {
+      name: params.customerName,
+      email: params.customerEmail,
+      phone: params.customerPhone,
+      country: params.customerCountry,
+    },
+    customMetadata: {
+      payment_id: params.paymentId,
+      order_id: params.orderId,
+      ...(params.extraMetadata ?? {}),
+    },
+    merchantReference: `IF-${params.orderId}-${params.paymentId}`,
+  });
+
+  return {
+    provider: session.provider,
+    paymentUrl: session.paymentUrl,
+    metadata: session.metadata,
+  };
+}
+
+async function syncPaymentWithProvider(paymentId: number) {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment || payment.provider !== "fedapay") {
+    return payment;
+  }
+
+  const metadata = ((payment.metadata as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+  const transactionId = metadata.fedapay_transaction_id;
+  if (transactionId == null) {
+    return payment;
+  }
+
+  const transaction = await retrieveFedaPayTransaction(transactionId as string | number);
+  const nextStatus = mapFedaPayStatus((transaction as { status?: string }).status);
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: {
+      metadata: toJsonInput({
+        ...metadata,
+        ...extractFedaPayMetadata(transaction),
+      }),
+    },
+  });
+
+  if (nextStatus !== payment.status) {
+    await setPaymentStatus(payment.id, nextStatus);
+  }
+
+  return prisma.payment.findUnique({ where: { id: payment.id } });
+}
+
+function getPaymentWebhookSignature(request: NextRequest) {
+  return (
+    request.headers.get("x-fedapay-signature") ??
+    request.headers.get("fedapay-signature") ??
+    request.headers.get("x-webhook-signature") ??
+    request.headers.get("webhook-signature") ??
+    request.headers.get("signature")
+  );
+}
+
+function extractWebhookTransactionId(event: Record<string, unknown>) {
+  const entity = asRecord(event.entity);
+  const transaction = asRecord(entity?.transaction);
+  const candidates = [
+    event.object_id,
+    entity?.id,
+    entity?.transaction_id,
+    transaction?.id,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" || typeof candidate === "number") {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function extractWebhookPaymentId(event: Record<string, unknown>) {
+  const entity = asRecord(event.entity);
+  const customMetadata = asRecord(entity?.custom_metadata);
+  const value = customMetadata?.payment_id;
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+  return null;
+}
+
+async function findPaymentByFedapayTransactionId(transactionId: string | number) {
+  return prisma.payment.findFirst({
+    where: {
+      provider: "fedapay",
+      OR: [
+        { metadata: { path: ["fedapay_transaction_id"], equals: transactionId } },
+        { metadata: { path: ["fedapay_transaction_id"], equals: String(transactionId) } },
+      ],
+    },
+  });
+}
+
+async function handlePaymentWebhook(request: NextRequest) {
+  if (!isFedaPayWebhookConfigured()) {
+    return fail("FedaPay webhook secret is not configured", 503);
+  }
+
+  const signatureHeader = getPaymentWebhookSignature(request);
+  if (!signatureHeader) {
+    return fail("Missing FedaPay webhook signature", 400);
+  }
+
+  const payload = await request.text();
+
+  let event: Record<string, unknown>;
+  try {
+    event = constructFedaPayWebhookEvent(payload, signatureHeader);
+  } catch {
+    return fail("Invalid FedaPay webhook signature", 400);
+  }
+
+  const paymentId = extractWebhookPaymentId(event);
+  if (paymentId) {
+    const syncedPayment = await syncPaymentWithProvider(paymentId);
+    return ok({ received: true, processed: Boolean(syncedPayment), payment_id: paymentId, event_type: event.type ?? null });
+  }
+
+  const transactionId = extractWebhookTransactionId(event);
+  if (!transactionId) {
+    return ok({ received: true, processed: false, event_type: event.type ?? null });
+  }
+
+  const payment = await findPaymentByFedapayTransactionId(transactionId);
+  if (!payment) {
+    return ok({ received: true, processed: false, transaction_id: transactionId, event_type: event.type ?? null });
+  }
+
+  await syncPaymentWithProvider(payment.id);
+  return ok({ received: true, processed: true, payment_id: payment.id, transaction_id: transactionId, event_type: event.type ?? null });
 }
 
 async function createPdf(title: string, lines: string[]) {
@@ -798,20 +983,34 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
     const payment = await tx.payment.create({
       data: {
         order_id: order.id,
-        provider: "mock",
+        provider: isFedaPayConfigured() ? "fedapay" : "mock",
         status: "pending",
         amount: subtotal,
-        metadata: { mode: "mock" },
+        metadata: toJsonInput({}),
       },
     });
 
-    const payment_url = mockPaymentUrl(order.id, payment.id);
-    await tx.payment.update({
-      where: { id: payment.id },
-      data: { metadata: { mode: "mock", payment_url } },
-    });
+    return { orderId: order.id, paymentId: payment.id };
+  });
 
-    return { orderId: order.id, paymentId: payment.id, payment_url };
+  const paymentSession = await initializeHostedPayment({
+    paymentId: result.paymentId,
+    orderId: result.orderId,
+    amount: subtotal,
+    description: `Paiement commande #${result.orderId}`,
+    customerName: user.name,
+    customerEmail: user.email,
+    customerPhone: payload.customer_phone ?? payload.shipping_address?.phone ?? null,
+    customerCountry: payload.customer_country ?? payload.shipping_address?.country ?? null,
+    extraMetadata: { type: "order" },
+  });
+
+  await prisma.payment.update({
+    where: { id: result.paymentId },
+    data: {
+      provider: paymentSession.provider,
+      metadata: toJsonInput(paymentSession.metadata),
+    },
   });
 
   const order = await prisma.order.findUnique({
@@ -829,7 +1028,7 @@ async function handleCheckout(request: NextRequest, user: SessionUser) {
     return fail("Unable to create order", 500);
   }
 
-  return ok({ order: mapOrder(order as OrderWithRelations), payment_url: result.payment_url }, 201);
+  return ok({ order: mapOrder(order as OrderWithRelations), payment_url: paymentSession.paymentUrl }, 201);
 }
 
 async function handleOrders(request: NextRequest, user: SessionUser, segments: string[]) {
@@ -881,20 +1080,37 @@ async function handleOrders(request: NextRequest, user: SessionUser, segments: s
       payment = await prisma.payment.create({
         data: {
           order_id: order.id,
-          provider: "mock",
+          provider: isFedaPayConfigured() ? "fedapay" : "mock",
           status: "pending",
           amount: order.total,
-          metadata: { mode: "mock" },
+          metadata: toJsonInput({}),
         },
       });
     }
 
-    const payment_url = mockPaymentUrl(order.id, payment.id);
+    const paymentSession = await initializeHostedPayment({
+      paymentId: payment.id,
+      orderId: order.id,
+      amount: Number(order.total),
+      description: `Paiement commande #${order.id}`,
+      customerName: order.user.name,
+      customerEmail: order.user.email,
+      customerPhone: order.shippingAddress?.phone ?? null,
+      customerCountry: order.shippingAddress?.country ?? null,
+      extraMetadata: { type: "order" },
+    });
+
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { metadata: { ...(payment.metadata as object ?? {}), mode: "mock", payment_url } },
+      data: {
+        provider: paymentSession.provider,
+        metadata: toJsonInput({
+          ...(((payment.metadata as Record<string, unknown> | null) ?? {}) as Record<string, unknown>),
+          ...paymentSession.metadata,
+        }),
+      },
     });
-    return ok({ payment_url, payment_id: payment.id, order_id: order.id }, 201);
+    return ok({ payment_url: paymentSession.paymentUrl, payment_id: payment.id, order_id: order.id }, 201);
   }
 
   return fail("Not found", 404);
@@ -991,14 +1207,32 @@ async function handleImportRequests(request: NextRequest, user: SessionUser, seg
     const payment = await prisma.payment.create({
       data: {
         order_id: order.id,
-        provider: "mock",
+        provider: isFedaPayConfigured() ? "fedapay" : "mock",
         status: "pending",
         amount: item.admin_price,
-        metadata: { type: "import_request", import_request_id: item.id },
+        metadata: toJsonInput({ type: "import_request", import_request_id: item.id }),
       },
     });
-    const payment_url = mockPaymentUrl(order.id, payment.id);
-    await prisma.payment.update({ where: { id: payment.id }, data: { metadata: { type: "import_request", import_request_id: item.id, payment_url, mode: "mock" } } });
+    const paymentSession = await initializeHostedPayment({
+      paymentId: payment.id,
+      orderId: order.id,
+      amount: Number(item.admin_price),
+      description: `Paiement service d'import #${item.id}`,
+      customerName: user.name,
+      customerEmail: user.email,
+      extraMetadata: { type: "import_request", import_request_id: item.id },
+    });
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        provider: paymentSession.provider,
+        metadata: toJsonInput({
+          type: "import_request",
+          import_request_id: item.id,
+          ...paymentSession.metadata,
+        }),
+      },
+    });
     await prisma.importRequest.update({
       where: { id: item.id },
       data: {
@@ -1008,7 +1242,7 @@ async function handleImportRequests(request: NextRequest, user: SessionUser, seg
       },
     });
 
-    return ok({ payment_url, payment_id: payment.id, import_request_id: item.id }, 201);
+    return ok({ payment_url: paymentSession.paymentUrl, payment_id: payment.id, import_request_id: item.id }, 201);
   }
 
   return fail("Not found", 404);
@@ -1722,8 +1956,12 @@ async function handlePaymentReturnStatus(request: NextRequest) {
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return fail("Not found", 404);
 
-  if (mock && payment.status === "pending") {
+  if (payment.provider === "mock" && mock && payment.status === "pending") {
     await setPaymentStatus(payment.id, "completed");
+  }
+
+  if (payment.provider === "fedapay") {
+    await syncPaymentWithProvider(payment.id);
   }
 
   const [freshOrder, freshPayment] = await Promise.all([
@@ -1746,7 +1984,7 @@ export async function handleApiRequest(request: NextRequest, path: string[]) {
       return ok({ status: "ok", timestamp: new Date().toISOString() });
     }
     if (path[0] === "webhooks" && path[1] === "payments" && request.method === "POST") {
-      return ok({ received: true });
+      return handlePaymentWebhook(request);
     }
     if (path[0] === "payment" && path[1] === "return-status" && request.method === "GET") {
       return handlePaymentReturnStatus(request);
