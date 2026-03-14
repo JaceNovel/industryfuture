@@ -31,7 +31,7 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 type PopularItem = Product;
 
-const POPULAR_ROTATION_DAYS = 5;
+const POPULAR_ROTATION_DAYS = 2;
 const POPULAR_ROTATION_MS = POPULAR_ROTATION_DAYS * 24 * 60 * 60 * 1000;
 
 
@@ -300,39 +300,40 @@ const displayedItems = useMemo(() => {
   const renderPopularCard = (item: PopularItem, idx: number, keyPrefix: string) => {
     const href = `/product/${item.slug}`;
     const img = item.images?.[0]?.url ?? PLACEHOLDER_IMG;
+    const deliveryLabel = item.tag_delivery === "PRET_A_ETRE_LIVRE" ? "PRET" : "COMMANDE";
 
     return (
       <article
         key={item.id ?? item.slug ?? `${keyPrefix}-${idx}`}
-        className="product-card homepage-product-card group rounded-[20px] border border-[#d4af37]/28 bg-white p-4 shadow-[0_14px_35px_-30px_rgba(212,175,55,0.45)] transition-all duration-400 hover:shadow-[0_20px_40px_-24px_rgba(212,175,55,0.55)]"
+        className="product-card homepage-product-card group relative rounded-[28px] border border-[#eacb78] bg-[#fffdf8] p-3 shadow-[0_16px_34px_-30px_rgba(177,134,11,0.42)] transition-all duration-300"
       >
-        <div className="pointer-events-none absolute" />
+        <span className="homepage-product-badge">{deliveryLabel}</span>
         <Link href={href} className="block">
-          <div className="homepage-product-media relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50">
+          <div className="homepage-product-media relative aspect-[4/5] overflow-hidden rounded-[22px] border border-[#f1ddaa] bg-white">
             {img.startsWith("/") ? (
               <Image
                 src={img}
                 alt={item.name}
                 fill
-                sizes="(min-width: 1024px) 25vw, 100vw"
-                className="object-contain transition-transform duration-300 group-hover:scale-105"
+                sizes="(min-width: 1024px) 180px, 50vw"
+                className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={img}
                 alt={item.images?.[0]?.alt ?? item.name}
-                className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
               />
             )}
           </div>
-          <h3 className="product-title mt-4 line-clamp-1 text-base font-semibold text-slate-900">{item.name}</h3>
-          <p className="product-price mt-1 text-sm text-slate-600">{formatPrice(item.price)}</p>
+          <h3 className="product-title mt-5 line-clamp-2 text-center text-[15px] font-semibold leading-[1.25] text-[#27324a]">{item.name}</h3>
+          <p className="product-price mt-5 text-center text-[18px] font-semibold tracking-tight text-[#87630f]">{formatPrice(item.price)}</p>
         </Link>
         <Button
           asChild
           variant="outline"
-          className="premium-button mt-4 w-full rounded-full border-[#d4af37]/35 text-[#694d08] transition-all duration-400 hover:bg-[#faf8f4] hover:shadow-[0_12px_24px_-16px_rgba(212,175,55,0.6)]"
+          className="homepage-product-cta mt-5 h-11 w-full rounded-full border-[#ead295] bg-white text-[15px] font-semibold text-[#8a6917] transition-all duration-300 hover:bg-[#fff8ea]"
         >
           <Link href={href}>Voir le produit</Link>
         </Button>
@@ -474,24 +475,24 @@ const displayedItems = useMemo(() => {
       </section>
 
       <section className="popular-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
-        <div className="mx-auto max-w-6xl">
+        <div className="homepage-feature-strip mx-auto max-w-[1420px]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-5 flex flex-wrap items-center justify-between gap-4 md:mb-7"
+            className="mb-7 flex flex-wrap items-center justify-between gap-4 px-0 md:mb-9"
           >
             <div>
-              <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-3xl">
+              <h2 className="text-[22px] font-semibold tracking-tight text-slate-950 md:text-[32px]">
   Toutes nos pépites
 </h2>
-              <p className="mt-1 text-sm text-slate-600">Sélection dynamique des meilleures références.</p>
+              <p className="mt-1 text-sm text-[#53657f] md:text-[15px]">Selection melangee, renouvelee automatiquement tous les 2 jours.</p>
             </div>
             <Button
               asChild
               variant="outline"
-              className="explore-button-desktop rounded-full border-[#d4af37]/40 bg-[#faf8f4] text-[#694d08] shadow-[0_10px_22px_-18px_rgba(212,175,55,0.75)] transition-all duration-400 hover:bg-[#fffaf0] hover:shadow-[0_14px_28px_-16px_rgba(212,175,55,0.75)]"
+              className="explore-button-desktop rounded-full border-[#e3c16b] bg-white px-6 text-[#8a6917] shadow-none transition-all duration-300 hover:bg-[#fff8ea]"
             >
               <Link href="/shop" className="inline-flex items-center gap-2">
                 Explorer la boutique <ArrowRight className="h-4 w-4" />
@@ -519,20 +520,20 @@ const displayedItems = useMemo(() => {
           {/* Mobile: grille 2 colonnes comme le catalogue */}
 <div
   ref={popularSectionRef}
-  className="popular-products-container homepage-products-container grid grid-cols-2 gap-4 md:hidden"
+  className="homepage-products-mobile grid grid-cols-2 gap-4 md:hidden"
 >
     {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "mobile")
 )}
 </div>
 
-          {/* Desktop: keep existing behavior */}
+          {/* Desktop track */}
           <motion.div
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="popular-products popular-products-container homepage-products-container hidden grid grid-cols-2 gap-4 sm:gap-6 md:grid md:grid-cols-3 lg:grid-cols-4"
+            className="homepage-feature-track hidden md:flex"
           >
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
