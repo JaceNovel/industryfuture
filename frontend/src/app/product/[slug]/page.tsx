@@ -192,48 +192,48 @@ export default function ProductPage() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-[1220px] px-4 py-5 md:px-6 md:py-7">
+    <main className="mx-auto w-full max-w-[1280px] px-4 py-4 md:px-6 md:py-5">
       {productQuery.isLoading ? <div className="text-sm text-slate-500">Chargement du produit...</div> : null}
       {productQuery.isError ? <div className="text-sm text-destructive">{(productQuery.error as Error).message}</div> : null}
 
       {product ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div className="flex items-center gap-3 text-sm text-slate-500">
             <Link href="/shop" className="inline-flex items-center gap-2 font-medium text-slate-700 hover:text-slate-950">
               <ArrowLeft className="h-4 w-4" /> Retour a la boutique
             </Link>
           </div>
 
-          <section className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_480px] xl:items-start">
-            <div className="space-y-4">
-              <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white p-3 md:p-4">
-                <div className="relative aspect-square overflow-hidden rounded-[16px] border border-slate-200 bg-[#fafafa]">
+          <section className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_516px] xl:items-start">
+            <div className="space-y-3">
+              <div className="overflow-hidden rounded-[16px] border border-slate-200 bg-white p-3">
+                <div className="relative aspect-[1/1.02] overflow-hidden rounded-[14px] border border-slate-200 bg-[#fbfbfb]">
                   {gallery[selectedImageIndex]?.url?.startsWith("/") ? (
                     <Image
                       src={gallery[selectedImageIndex].url}
                       alt={gallery[selectedImageIndex].alt ?? product.name}
                       fill
                       sizes="(min-width: 1280px) 54vw, 100vw"
-                      className="object-contain object-center p-5"
+                      className="object-contain object-center p-4 md:p-5"
                     />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={gallery[selectedImageIndex]?.url ?? PLACEHOLDER_IMG}
                       alt={gallery[selectedImageIndex]?.alt ?? product.name}
-                      className="h-full w-full object-contain object-center p-5"
+                      className="h-full w-full object-contain object-center p-4 md:p-5"
                     />
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 {gallery.slice(0, 4).map((image, index) => (
                   <button
                     key={`${image.url}-${index}`}
                     type="button"
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`relative h-[78px] w-[78px] overflow-hidden rounded-[12px] border bg-[#f8fafc] transition ${selectedImageIndex === index ? "border-[#59c5d7]" : "border-slate-200 hover:border-slate-300"}`}
+                    className={`relative h-[80px] w-[80px] overflow-hidden rounded-[10px] border bg-[#f8fafc] transition ${selectedImageIndex === index ? "border-[#59c5d7] shadow-[0_0_0_1px_rgba(89,197,215,0.15)]" : "border-slate-200 hover:border-slate-300"}`}
                   >
                     {image.url.startsWith("/") ? (
                       <Image src={image.url} alt={image.alt ?? product.name} fill sizes="78px" className="object-contain p-2" />
@@ -245,13 +245,13 @@ export default function ProductPage() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-3 pt-1">
+              <div className="flex items-center gap-2.5 pt-0.5">
                 <a
                   href={FACEBOOK_URL}
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Facebook"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
                 >
                   <FacebookLogo className="h-4 w-4" />
                 </a>
@@ -260,7 +260,7 @@ export default function ProductPage() {
                   target="_blank"
                   rel="noreferrer"
                   aria-label="TikTok"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
                 >
                   <TikTokLogo className="h-4 w-4" />
                 </a>
@@ -269,29 +269,29 @@ export default function ProductPage() {
                   target="_blank"
                   rel="noreferrer"
                   aria-label="Instagram"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
                 >
                   <InstagramLogo className="h-4 w-4" />
                 </a>
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-7 pt-1 xl:pt-0">
               <div>
-                <h1 className="text-4xl font-semibold leading-none tracking-tight text-slate-950 md:text-[3.1rem]">{product.name}</h1>
-                <div className="mt-5 text-[2.2rem] font-bold leading-none text-[#ff1e1e] md:text-[3rem]">{formatPriceCFA(displayPrice)}</div>
-                <p className="mt-3 text-[15px] text-slate-500">Prix de base: {formatPriceCFA(product.price)}</p>
+                <h1 className="text-[2.1rem] font-semibold leading-[1.05] tracking-[-0.03em] text-slate-950 md:text-[3.15rem]">{product.name}</h1>
+                <div className="mt-4 text-[2rem] font-bold leading-none text-[#ff1e1e] md:text-[2.95rem]">{formatPriceCFA(displayPrice)}</div>
+                <p className="mt-2 text-[15px] text-slate-500">Prix de base: {formatPriceCFA(product.price)}</p>
               </div>
 
               {(transportPrices.air != null || transportPrices.sea != null) ? (
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-950">Mode de livraison</h2>
-                  <div className="mt-3 flex flex-wrap gap-3">
+                  <h2 className="text-[1.1rem] font-semibold text-slate-950">Mode de livraison</h2>
+                  <div className="mt-2.5 flex flex-wrap gap-2.5">
                     <button
                       type="button"
                       onClick={() => setTransportMode("air")}
                       disabled={transportPrices.air == null}
-                      className={`rounded-[10px] border px-4 py-2.5 text-[15px] transition ${transportMode === "air" ? "border-[#4dc6d6] bg-[#ebfcff] text-[#174251]" : "border-slate-200 bg-white text-slate-500"} ${transportPrices.air == null ? "cursor-not-allowed opacity-50" : ""}`}
+                      className={`rounded-[10px] border px-4 py-2 text-[15px] transition ${transportMode === "air" ? "border-[#4dc6d6] bg-[#ebfcff] text-[#174251]" : "border-slate-200 bg-white text-slate-500"} ${transportPrices.air == null ? "cursor-not-allowed opacity-50" : ""}`}
                     >
                       Avion ({transportPrices.air != null ? formatPriceCFA(transportPrices.air) : "Indisponible"})
                     </button>
@@ -299,7 +299,7 @@ export default function ProductPage() {
                       type="button"
                       onClick={() => setTransportMode("sea")}
                       disabled={transportPrices.sea == null}
-                      className={`rounded-[10px] border px-4 py-2.5 text-[15px] transition ${transportMode === "sea" ? "border-[#4dc6d6] bg-[#ebfcff] text-[#174251]" : "border-slate-200 bg-white text-slate-500"} ${transportPrices.sea == null ? "cursor-not-allowed opacity-50" : ""}`}
+                      className={`rounded-[10px] border px-4 py-2 text-[15px] transition ${transportMode === "sea" ? "border-[#4dc6d6] bg-[#ebfcff] text-[#174251]" : "border-slate-200 bg-white text-slate-500"} ${transportPrices.sea == null ? "cursor-not-allowed opacity-50" : ""}`}
                     >
                       Bateau ({transportPrices.sea != null ? formatPriceCFA(transportPrices.sea) : "Indisponible"})
                     </button>
@@ -307,36 +307,36 @@ export default function ProductPage() {
                 </div>
               ) : null}
 
-              <div className="max-w-[42rem] text-[15px] leading-9 text-slate-700">
+              <div className="max-w-[39rem] text-[15px] leading-[1.95] text-slate-700">
                 {descriptionText || "La description de cet article sera bientot enrichie."}
               </div>
 
               <div>
-                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">Informations</h2>
-                <div className="mt-5 space-y-4 text-[15px] text-slate-700">
+                <h2 className="text-[2.05rem] font-semibold tracking-[-0.03em] text-slate-950">Informations</h2>
+                <div className="mt-4 space-y-3.5 text-[15px] text-slate-700">
                   {informationRows.map((row) => (
-                    <div key={row.label} className="grid grid-cols-[140px_minmax(0,1fr)] gap-4">
+                    <div key={row.label} className="grid grid-cols-[136px_minmax(0,1fr)] gap-4">
                       <div className="text-slate-700">{row.label}</div>
                       <div className="font-normal text-slate-900">{row.value}</div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-[#f7f7f7] px-3 py-1 text-sm font-semibold text-slate-700">
+                <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-[#f7f7f7] px-3 py-1 text-[13px] font-semibold text-slate-700">
                   {deliveryLabel}
                 </div>
               </div>
 
-              <div className="grid gap-4 pt-2 sm:grid-cols-2">
+              <div className="grid gap-4 pt-1 sm:grid-cols-2">
                 <Button
-                  className="h-14 rounded-[10px] bg-[#ff1f1f] text-base font-semibold text-white hover:bg-[#e51717]"
+                  className="h-[56px] rounded-[8px] bg-[#ff1f1f] px-6 text-[15px] font-semibold text-white hover:bg-[#e51717]"
                   disabled={addToCart.isPending}
                   onClick={(event) => handleAddToCart(event.currentTarget, false)}
                 >
                   <ShoppingCart className="h-5 w-5" /> Ajouter au panier
                 </Button>
                 <Button
-                  className="h-14 rounded-[10px] bg-[#0d9b97] text-base font-semibold text-white hover:bg-[#0a8a87]"
+                  className="h-[56px] rounded-[8px] bg-[#0d9b97] px-6 text-[15px] font-semibold text-white hover:bg-[#0a8a87]"
                   disabled={addToCart.isPending}
                   onClick={(event) => handleAddToCart(event.currentTarget, true)}
                 >
