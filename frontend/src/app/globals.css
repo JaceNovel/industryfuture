@@ -1096,6 +1096,8 @@
 
 .homepage-feature-track {
   display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: 14px;
   overflow-x: auto;
   padding: 0 2px;
@@ -1112,8 +1114,9 @@
 }
 
 .homepage-product-card {
-  flex: 0 0 164px;
-  min-width: 164px;
+  flex: 0 0 168px;
+  min-width: 168px;
+  max-width: 168px;
   position: relative;
 }
 
@@ -1154,7 +1157,9 @@
   }
 
   .homepage-products-mobile .homepage-product-card {
+    flex: initial;
     min-width: 0;
+    max-width: none;
     width: 100%;
     padding: 0.8rem;
     border-radius: 24px;

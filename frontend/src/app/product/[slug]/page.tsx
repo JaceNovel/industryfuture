@@ -1,36 +1,53 @@
 "use client";
 
+import type { SVGProps } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ArrowRight,
-  BadgeCheck,
-  Minus,
-  Package,
-  Plus,
-  ShieldCheck,
-  ShoppingCart,
-  Truck,
-} from "lucide-react";
+import { ArrowLeft, ShoppingCart, Zap } from "lucide-react";
 import { apiGet, apiPatch } from "@/lib/api";
 import { flyToCart } from "@/lib/fly-to-cart";
 import type { Product } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 const PLACEHOLDER_IMG = "/WhatsApp_Image_2026-02-12_at_21.36.46-removebg-preview.png";
+const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61578635757172";
+const TIKTOK_URL = "https://www.tiktok.com/@a_d_a_n.gladiator?_r=1&_t=ZS-941CIvuHTwv";
+const INSTAGRAM_URL = "https://www.instagram.com/meslmenehasn?utm_source=qr&igsh=YjJ5aTRid3Zkangy";
 
 type ProductsResponse = {
   data: Product[];
   current_page: number;
   last_page: number;
 };
+
+function FacebookLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M22 12.06C22 6.505 17.523 2 12 2S2 6.505 2 12.06C2 17.08 5.657 21.24 10.438 22v-7.03H7.898v-2.91h2.54V9.845c0-2.522 1.492-3.915 3.777-3.915 1.094 0 2.238.196 2.238.196v2.475h-1.261c-1.243 0-1.631.78-1.631 1.58v1.88h2.773l-.443 2.91h-2.33V22C18.343 21.24 22 17.08 22 12.06z" />
+    </svg>
+  );
+}
+
+function InstagramLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9A5.5 5.5 0 0 1 16.5 22h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm9 2h-9A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4z" />
+      <path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+      <path d="M17.25 6.75a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+    </svg>
+  );
+}
+
+function TikTokLogo(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M14 3v10.06a3.94 3.94 0 1 1-3-3.82V7.06A6 6 0 1 0 16 12V7.2c1.08 1.02 2.52 1.65 4 1.72V6.5c-2.21-.19-3.78-1.43-4.62-3.5H14z" />
+    </svg>
+  );
+}
 
 function formatPriceCFA(value: unknown) {
   const amount = Number(value ?? 0);
@@ -70,19 +87,12 @@ function getTransportPrices(product: Product) {
   };
 }
 
-function getTransportDelays(product: Product) {
+function getMinimumQuantity(product: Product) {
   const metadata = (product.metadata ?? {}) as Record<string, unknown>;
-  const delays = (metadata.transport_delivery_delays ?? {}) as Record<string, unknown>;
-
-  const airMin = Number(delays.air_min ?? 5);
-  const airMax = Number(delays.air_max ?? 10);
-  const seaMin = Number(delays.sea_min ?? 30);
-  const seaMax = Number(delays.sea_max ?? 50);
-
-  return {
-    air: [Number.isFinite(airMin) ? airMin : 5, Number.isFinite(airMax) ? airMax : 10] as [number, number],
-    sea: [Number.isFinite(seaMin) ? seaMin : 30, Number.isFinite(seaMax) ? seaMax : 50] as [number, number],
-  };
+  const min = Number(
+    metadata.minimum_order_quantity ?? metadata.min_order_quantity ?? metadata.min_qty ?? metadata.minimum_quantity ?? 1,
+  );
+  return Number.isFinite(min) && min > 0 ? min : 1;
 }
 
 function normalizeDescription(description: string | null | undefined) {
@@ -97,7 +107,6 @@ export default function ProductPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
   const [transportMode, setTransportMode] = useState<"air" | "sea">("air");
 
   const productQuery = useQuery({
@@ -118,7 +127,6 @@ export default function ProductPage() {
 
   useEffect(() => {
     setSelectedImageIndex(0);
-    setQuantity(1);
   }, [params.slug]);
 
   useEffect(() => {
@@ -126,15 +134,17 @@ export default function ProductPage() {
     const prices = getTransportPrices(product);
     if (prices.air != null) {
       setTransportMode("air");
-    } else if (prices.sea != null) {
+      return;
+    }
+    if (prices.sea != null) {
       setTransportMode("sea");
     }
   }, [product]);
 
   const addToCart = useMutation({
-    mutationFn: async (qty: number) => {
+    mutationFn: async () => {
       if (!product?.id) throw new Error("Produit introuvable.");
-      return apiPatch("/api/cart", { product_id: product.id, qty });
+      return apiPatch("/api/cart", { product_id: product.id, qty: 1 });
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
@@ -142,257 +152,209 @@ export default function ProductPage() {
   });
 
   const paragraphs = useMemo(() => normalizeDescription(product?.description), [product?.description]);
+  const descriptionText = paragraphs.join(" ");
   const brand = product ? getBrand(product) : null;
   const tags = product ? getTags(product) : [];
   const transportPrices = product ? getTransportPrices(product) : { air: null, sea: null };
-  const transportDelays = product ? getTransportDelays(product) : { air: [5, 10] as [number, number], sea: [30, 50] as [number, number] };
+  const categoryName = product?.categories?.[0]?.name ?? "SPORT ET LOISIR";
+  const stockValue = typeof product?.stock === "number" ? product.stock : 0;
+  const minimumQuantity = product ? getMinimumQuantity(product) : 1;
+  const deliveryLabel = product?.tag_delivery === "PRET_A_ETRE_LIVRE" ? "PRET A ETRE LIVRE" : "SUR COMMANDE";
   const selectedTransportPrice = transportMode === "air" ? transportPrices.air : transportPrices.sea;
-  const selectedTransportDelay = transportMode === "air" ? transportDelays.air : transportDelays.sea;
-  const categoryName = product?.categories?.[0]?.name ?? "Catalogue premium";
-  const deliveryLabel = product?.tag_delivery === "PRET_A_ETRE_LIVRE" ? "Pret a etre livre" : "Sur commande";
+  const displayPrice = selectedTransportPrice ?? product?.price ?? 0;
   const relatedProducts = useMemo(() => {
     const all = relatedQuery.data?.data ?? [];
-    return all
-      .filter((item) => item.slug !== product?.slug)
-      .filter((item) => {
-        const currentCategory = product?.categories?.[0]?.slug;
-        if (!currentCategory) return true;
-        return item.categories?.[0]?.slug === currentCategory;
-      })
-      .slice(0, 4);
-  }, [product?.categories, product?.slug, relatedQuery.data?.data]);
+    return all.filter((item) => item.slug !== product?.slug).slice(0, 4);
+  }, [product?.slug, relatedQuery.data?.data]);
+
+  async function handleAddToCart(button: HTMLElement, redirectToCheckout: boolean) {
+    try {
+      await addToCart.mutateAsync();
+      flyToCart(button);
+      if (redirectToCheckout) {
+        router.push("/checkout");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Impossible d'ajouter ce produit au panier.";
+      window.alert(message);
+      if (message.toLowerCase().includes("unauthorized")) {
+        router.push("/auth/login");
+      }
+    }
+  }
+
+  const informationRows = [
+    { label: "Catégorie", value: categoryName },
+    { label: "Marque", value: brand ?? "Non renseignée" },
+    { label: "Stock", value: `${stockValue} unités` },
+    { label: "Quantité Min:", value: String(minimumQuantity) },
+    { label: "Tags", value: tags.length ? tags.join(", ") : "Aucun" },
+  ];
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">
+    <main className="mx-auto w-full max-w-[1220px] px-4 py-5 md:px-6 md:py-7">
       {productQuery.isLoading ? <div className="text-sm text-slate-500">Chargement du produit...</div> : null}
       {productQuery.isError ? <div className="text-sm text-destructive">{(productQuery.error as Error).message}</div> : null}
 
       {product ? (
-        <div className="space-y-8 md:space-y-12">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-            <Link href="/shop" className="inline-flex items-center gap-2 font-medium text-slate-700 hover:text-[#8a6917]">
+        <div className="space-y-8">
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <Link href="/shop" className="inline-flex items-center gap-2 font-medium text-slate-700 hover:text-slate-950">
               <ArrowLeft className="h-4 w-4" /> Retour a la boutique
             </Link>
-            <span>/</span>
-            <span>{categoryName}</span>
           </div>
 
-          <section className="grid gap-6 lg:grid-cols-[1.2fr_0.95fr] lg:gap-10">
+          <section className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_480px] xl:items-start">
             <div className="space-y-4">
-              <Card className="overflow-hidden rounded-[28px] border border-[#ecd38f] bg-[#fffdf8] shadow-[0_24px_60px_-46px_rgba(177,134,11,0.45)]">
-                <CardContent className="p-4 md:p-5">
-                  <div className="relative aspect-[4/4.3] overflow-hidden rounded-[24px] border border-[#f1e3bc] bg-white">
-                    {gallery[selectedImageIndex]?.url?.startsWith("/") ? (
-                      <Image
-                        src={gallery[selectedImageIndex].url}
-                        alt={gallery[selectedImageIndex].alt ?? product.name}
-                        fill
-                        sizes="(min-width: 1024px) 52vw, 100vw"
-                        className="object-cover object-center"
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={gallery[selectedImageIndex]?.url ?? PLACEHOLDER_IMG}
-                        alt={gallery[selectedImageIndex]?.alt ?? product.name}
-                        className="h-full w-full object-cover object-center"
-                      />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white p-3 md:p-4">
+                <div className="relative aspect-square overflow-hidden rounded-[16px] border border-slate-200 bg-[#fafafa]">
+                  {gallery[selectedImageIndex]?.url?.startsWith("/") ? (
+                    <Image
+                      src={gallery[selectedImageIndex].url}
+                      alt={gallery[selectedImageIndex].alt ?? product.name}
+                      fill
+                      sizes="(min-width: 1280px) 54vw, 100vw"
+                      className="object-contain object-center p-5"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={gallery[selectedImageIndex]?.url ?? PLACEHOLDER_IMG}
+                      alt={gallery[selectedImageIndex]?.alt ?? product.name}
+                      className="h-full w-full object-contain object-center p-5"
+                    />
+                  )}
+                </div>
+              </div>
 
-              <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
-                {gallery.map((image, index) => (
+              <div className="flex flex-wrap items-center gap-3">
+                {gallery.slice(0, 4).map((image, index) => (
                   <button
                     key={`${image.url}-${index}`}
                     type="button"
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`relative aspect-square overflow-hidden rounded-[18px] border bg-white transition-all ${selectedImageIndex === index ? "border-[#d6ae48] shadow-[0_16px_28px_-22px_rgba(177,134,11,0.45)]" : "border-[#eadfbf]"}`}
+                    className={`relative h-[78px] w-[78px] overflow-hidden rounded-[12px] border bg-[#f8fafc] transition ${selectedImageIndex === index ? "border-[#59c5d7]" : "border-slate-200 hover:border-slate-300"}`}
                   >
                     {image.url.startsWith("/") ? (
-                      <Image src={image.url} alt={image.alt ?? product.name} fill sizes="120px" className="object-cover object-center" />
+                      <Image src={image.url} alt={image.alt ?? product.name} fill sizes="78px" className="object-contain p-2" />
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={image.url} alt={image.alt ?? product.name} className="h-full w-full object-cover object-center" />
+                      <img src={image.url} alt={image.alt ?? product.name} className="h-full w-full object-contain p-2" />
                     )}
                   </button>
                 ))}
               </div>
-            </div>
 
-            <div className="space-y-5">
-              <div className="rounded-[30px] border border-[#ead39a] bg-[linear-gradient(180deg,#fffdf8_0%,#fffaf0_100%)] p-6 shadow-[0_24px_60px_-48px_rgba(177,134,11,0.45)] md:p-8">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="rounded-full bg-[#fff2cf] px-3 py-1 text-[#8a6917] hover:bg-[#fff2cf]">{deliveryLabel}</Badge>
-                  <Badge variant="outline" className="rounded-full border-[#e4d2a0] px-3 py-1 text-[#6a768b]">{categoryName}</Badge>
-                </div>
-
-                <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-[#152238] md:text-4xl">{product.name}</h1>
-
-                {paragraphs[0] ? <p className="mt-4 text-[15px] leading-7 text-[#5a6b82]">{paragraphs[0]}</p> : null}
-
-                <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
-                  <div className="text-3xl font-semibold tracking-tight text-[#8a6917] md:text-4xl">{formatPriceCFA(product.price)}</div>
-                  {product.compare_at_price ? <div className="text-lg text-slate-400 line-through">{formatPriceCFA(product.compare_at_price)}</div> : null}
-                </div>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-[#ede2c2] bg-white/80 p-4">
-                    <div className="flex items-center gap-2 text-[#8a6917]"><Truck className="h-4 w-4" /> Livraison</div>
-                    <div className="mt-2 text-sm font-medium text-slate-900">{selectedTransportDelay[0]} a {selectedTransportDelay[1]} jours</div>
-                  </div>
-                  <div className="rounded-2xl border border-[#ede2c2] bg-white/80 p-4">
-                    <div className="flex items-center gap-2 text-[#8a6917]"><ShieldCheck className="h-4 w-4" /> Disponibilite</div>
-                    <div className="mt-2 text-sm font-medium text-slate-900">{product.stock && product.stock > 0 ? `${product.stock} en stock` : "Stock variable"}</div>
-                  </div>
-                  <div className="rounded-2xl border border-[#ede2c2] bg-white/80 p-4">
-                    <div className="flex items-center gap-2 text-[#8a6917]"><Package className="h-4 w-4" /> SKU</div>
-                    <div className="mt-2 text-sm font-medium text-slate-900">{product.sku || "Non renseigne"}</div>
-                  </div>
-                </div>
-
-                {(transportPrices.air != null || transportPrices.sea != null) ? (
-                  <div className="mt-6 rounded-[24px] border border-[#ecdcb2] bg-white/70 p-4">
-                    <div className="text-sm font-semibold text-slate-900">Choisissez le mode de transport</div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => setTransportMode("air")}
-                        disabled={transportPrices.air == null}
-                        className={`rounded-2xl border p-4 text-left transition-all ${transportMode === "air" ? "border-[#d5a737] bg-[#fff8e6]" : "border-[#eadfbf] bg-white"} ${transportPrices.air == null ? "opacity-50" : ""}`}
-                      >
-                        <div className="text-sm font-semibold text-slate-900">Avion</div>
-                        <div className="mt-1 text-sm text-[#8a6917]">{transportPrices.air != null ? formatPriceCFA(transportPrices.air) : "Indisponible"}</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTransportMode("sea")}
-                        disabled={transportPrices.sea == null}
-                        className={`rounded-2xl border p-4 text-left transition-all ${transportMode === "sea" ? "border-[#d5a737] bg-[#fff8e6]" : "border-[#eadfbf] bg-white"} ${transportPrices.sea == null ? "opacity-50" : ""}`}
-                      >
-                        <div className="text-sm font-semibold text-slate-900">Bateau</div>
-                        <div className="mt-1 text-sm text-[#8a6917]">{transportPrices.sea != null ? formatPriceCFA(transportPrices.sea) : "Indisponible"}</div>
-                      </button>
-                    </div>
-                    {selectedTransportPrice != null ? <p className="mt-3 text-sm text-slate-600">Frais de transport selectionnes : <span className="font-semibold text-slate-900">{formatPriceCFA(selectedTransportPrice)}</span></p> : null}
-                  </div>
-                ) : null}
-
-                <div className="mt-6 flex flex-wrap items-center gap-3">
-                  <div className="inline-flex items-center rounded-full border border-[#ead39a] bg-white px-2 py-2 shadow-[0_12px_28px_-22px_rgba(177,134,11,0.45)]">
-                    <button
-                      type="button"
-                      onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-700 hover:bg-[#faf4e4]"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="min-w-10 text-center text-sm font-semibold text-slate-900">{quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => setQuantity((value) => value + 1)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-700 hover:bg-[#faf4e4]"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <Button
-                    className="h-12 rounded-full bg-[linear-gradient(135deg,#f6e27a,#d4af37,#b8860b)] px-6 text-[#392806] shadow-[0_18px_32px_-24px_rgba(177,134,11,0.65)] hover:opacity-95"
-                    disabled={addToCart.isPending}
-                    onClick={async (event) => {
-                      try {
-                        await addToCart.mutateAsync(quantity);
-                        const button = event.currentTarget as HTMLElement;
-                        flyToCart(button);
-                      } catch (error) {
-                        const message = error instanceof Error ? error.message : "Impossible d'ajouter ce produit au panier.";
-                        window.alert(message);
-                        if (message.toLowerCase().includes("unauthorized")) {
-                          router.push("/auth/login");
-                        }
-                      }
-                    }}
-                  >
-                    <ShoppingCart className="mr-2 h-4 w-4" /> Ajouter au panier
-                  </Button>
-
-                  <Button asChild variant="outline" className="h-12 rounded-full border-[#e3c16b] bg-white px-6 text-[#8a6917] hover:bg-[#fff8ea]">
-                    <Link href="/shop">Explorer la boutique <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                  </Button>
-                </div>
-
-                {addToCart.isError ? <p className="mt-3 text-sm text-destructive">{(addToCart.error as Error).message}</p> : null}
+              <div className="flex items-center gap-3 pt-1">
+                <a
+                  href={FACEBOOK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+                >
+                  <FacebookLogo className="h-4 w-4" />
+                </a>
+                <a
+                  href={TIKTOK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="TikTok"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+                >
+                  <TikTokLogo className="h-4 w-4" />
+                </a>
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+                >
+                  <InstagramLogo className="h-4 w-4" />
+                </a>
               </div>
             </div>
-          </section>
-
-          <section className="grid gap-6 lg:grid-cols-[1.25fr_0.8fr]">
-            <Card className="rounded-[28px] border border-[#ead39a] bg-white shadow-[0_22px_60px_-50px_rgba(177,134,11,0.45)]">
-              <CardContent className="p-6 md:p-8">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#fff4d6] text-[#8a6917]">
-                    <BadgeCheck className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold tracking-tight text-[#152238]">Description du produit</h2>
-                    <p className="mt-1 text-sm text-slate-500">Contenu detaille recupere depuis la base catalogue.</p>
-                  </div>
-                </div>
-                <Separator className="my-6 bg-[#f0e4bf]" />
-
-                {paragraphs.length ? (
-                  <div className="space-y-4 text-[15px] leading-8 text-[#42526a]">
-                    {paragraphs.map((paragraph, index) => (
-                      <p key={`${index}-${paragraph.slice(0, 16)}`}>{paragraph}</p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[15px] leading-8 text-[#42526a]">La description de cet article sera bientot enrichie.</p>
-                )}
-              </CardContent>
-            </Card>
 
             <div className="space-y-6">
-              <Card className="rounded-[28px] border border-[#ead39a] bg-[#fffdf8] shadow-[0_22px_60px_-50px_rgba(177,134,11,0.45)]">
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold tracking-tight text-[#152238]">Fiche rapide</h2>
-                  <div className="mt-5 space-y-4 text-sm">
-                    <div className="flex items-start justify-between gap-4"><span className="text-slate-500">Categorie</span><span className="text-right font-medium text-slate-900">{categoryName}</span></div>
-                    <div className="flex items-start justify-between gap-4"><span className="text-slate-500">Disponibilite</span><span className="text-right font-medium text-slate-900">{deliveryLabel}</span></div>
-                    <div className="flex items-start justify-between gap-4"><span className="text-slate-500">Marque</span><span className="text-right font-medium text-slate-900">{brand ?? "Non renseignee"}</span></div>
-                    <div className="flex items-start justify-between gap-4"><span className="text-slate-500">Reference</span><span className="text-right font-medium text-slate-900">{product.sku ?? "Non renseignee"}</span></div>
-                    <div className="flex items-start justify-between gap-4"><span className="text-slate-500">Stock</span><span className="text-right font-medium text-slate-900">{product.stock ?? 0}</span></div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div>
+                <h1 className="text-4xl font-semibold leading-none tracking-tight text-slate-950 md:text-[3.1rem]">{product.name}</h1>
+                <div className="mt-5 text-[2.2rem] font-bold leading-none text-[#ff1e1e] md:text-[3rem]">{formatPriceCFA(displayPrice)}</div>
+                <p className="mt-3 text-[15px] text-slate-500">Prix de base: {formatPriceCFA(product.price)}</p>
+              </div>
 
-              {tags.length ? (
-                <Card className="rounded-[28px] border border-[#ead39a] bg-white shadow-[0_22px_60px_-50px_rgba(177,134,11,0.45)]">
-                  <CardContent className="p-6">
-                    <h2 className="text-xl font-semibold tracking-tight text-[#152238]">Mots cles</h2>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="rounded-full border-[#ead39a] bg-[#fffaf0] px-3 py-1 text-[#8a6917]">{tag}</Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+              {(transportPrices.air != null || transportPrices.sea != null) ? (
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-950">Mode de livraison</h2>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTransportMode("air")}
+                      disabled={transportPrices.air == null}
+                      className={`rounded-[10px] border px-4 py-2.5 text-[15px] transition ${transportMode === "air" ? "border-[#4dc6d6] bg-[#ebfcff] text-[#174251]" : "border-slate-200 bg-white text-slate-500"} ${transportPrices.air == null ? "cursor-not-allowed opacity-50" : ""}`}
+                    >
+                      Avion ({transportPrices.air != null ? formatPriceCFA(transportPrices.air) : "Indisponible"})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTransportMode("sea")}
+                      disabled={transportPrices.sea == null}
+                      className={`rounded-[10px] border px-4 py-2.5 text-[15px] transition ${transportMode === "sea" ? "border-[#4dc6d6] bg-[#ebfcff] text-[#174251]" : "border-slate-200 bg-white text-slate-500"} ${transportPrices.sea == null ? "cursor-not-allowed opacity-50" : ""}`}
+                    >
+                      Bateau ({transportPrices.sea != null ? formatPriceCFA(transportPrices.sea) : "Indisponible"})
+                    </button>
+                  </div>
+                </div>
               ) : null}
+
+              <div className="max-w-[42rem] text-[15px] leading-9 text-slate-700">
+                {descriptionText || "La description de cet article sera bientot enrichie."}
+              </div>
+
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-slate-950">Informations</h2>
+                <div className="mt-5 space-y-4 text-[15px] text-slate-700">
+                  {informationRows.map((row) => (
+                    <div key={row.label} className="grid grid-cols-[140px_minmax(0,1fr)] gap-4">
+                      <div className="text-slate-700">{row.label}</div>
+                      <div className="font-normal text-slate-900">{row.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-[#f7f7f7] px-3 py-1 text-sm font-semibold text-slate-700">
+                  {deliveryLabel}
+                </div>
+              </div>
+
+              <div className="grid gap-4 pt-2 sm:grid-cols-2">
+                <Button
+                  className="h-14 rounded-[10px] bg-[#ff1f1f] text-base font-semibold text-white hover:bg-[#e51717]"
+                  disabled={addToCart.isPending}
+                  onClick={(event) => handleAddToCart(event.currentTarget, false)}
+                >
+                  <ShoppingCart className="h-5 w-5" /> Ajouter au panier
+                </Button>
+                <Button
+                  className="h-14 rounded-[10px] bg-[#0d9b97] text-base font-semibold text-white hover:bg-[#0a8a87]"
+                  disabled={addToCart.isPending}
+                  onClick={(event) => handleAddToCart(event.currentTarget, true)}
+                >
+                  <Zap className="h-5 w-5" /> Acheter maintenant
+                </Button>
+              </div>
+
+              {addToCart.isError ? <p className="text-sm text-destructive">{(addToCart.error as Error).message}</p> : null}
             </div>
           </section>
 
           {relatedProducts.length ? (
-            <section className="space-y-5">
+            <section className="space-y-4 pt-4">
               <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-[#152238]">Produits similaires</h2>
-                  <p className="mt-1 text-sm text-slate-500">Dans le meme univers que cet article.</p>
-                </div>
-                <Button asChild variant="outline" className="rounded-full border-[#e3c16b] bg-white text-[#8a6917] hover:bg-[#fff8ea]">
-                  <Link href="/shop">Voir plus</Link>
-                </Button>
+                <h2 className="text-2xl font-semibold text-slate-950">Produits similaires</h2>
+                <Link href="/shop" className="text-sm font-medium text-slate-600 hover:text-slate-950">
+                  Voir plus
+                </Link>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -402,18 +364,18 @@ export default function ProductPage() {
                     <Link
                       key={item.slug}
                       href={`/product/${item.slug}`}
-                      className="group overflow-hidden rounded-[24px] border border-[#ead39a] bg-[#fffdf8] p-3 shadow-[0_18px_44px_-38px_rgba(177,134,11,0.45)] transition-all hover:-translate-y-1 hover:shadow-[0_22px_50px_-36px_rgba(177,134,11,0.55)]"
+                      className="overflow-hidden rounded-[14px] border border-slate-200 bg-white p-3 transition hover:border-slate-300"
                     >
-                      <div className="relative aspect-[4/4.3] overflow-hidden rounded-[18px] border border-[#f1e3bc] bg-white">
+                      <div className="relative aspect-square overflow-hidden rounded-[10px] border border-slate-200 bg-[#fafafa]">
                         {image.startsWith("/") ? (
-                          <Image src={image} alt={item.name} fill sizes="320px" className="object-cover object-center transition-transform duration-300 group-hover:scale-105" />
+                          <Image src={image} alt={item.name} fill sizes="280px" className="object-contain p-3" />
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={image} alt={item.name} className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105" />
+                          <img src={image} alt={item.name} className="h-full w-full object-contain p-3" />
                         )}
                       </div>
-                      <h3 className="mt-4 line-clamp-2 text-base font-semibold text-[#26324a]">{item.name}</h3>
-                      <p className="mt-2 text-lg font-semibold text-[#8a6917]">{formatPriceCFA(item.price)}</p>
+                      <h3 className="mt-3 line-clamp-2 text-base font-semibold text-slate-950">{item.name}</h3>
+                      <p className="mt-2 text-lg font-bold text-[#ff1e1e]">{formatPriceCFA(item.price)}</p>
                     </Link>
                   );
                 })}

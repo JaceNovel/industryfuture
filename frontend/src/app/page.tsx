@@ -305,35 +305,35 @@ const displayedItems = useMemo(() => {
     return (
       <article
         key={item.id ?? item.slug ?? `${keyPrefix}-${idx}`}
-        className="product-card homepage-product-card group relative rounded-[28px] border border-[#eacb78] bg-[#fffdf8] p-3 shadow-[0_16px_34px_-30px_rgba(177,134,11,0.42)] transition-all duration-300"
+        className="product-card homepage-product-card group relative w-full min-w-0 rounded-[28px] border border-[#eacb78] bg-[#fffdf8] p-3 shadow-[0_16px_34px_-30px_rgba(177,134,11,0.42)] transition-all duration-300 md:w-[168px] md:min-w-[168px] md:max-w-[168px]"
       >
         <span className="homepage-product-badge">{deliveryLabel}</span>
         <Link href={href} className="block">
-          <div className="homepage-product-media relative aspect-[4/5] overflow-hidden rounded-[22px] border border-[#f1ddaa] bg-white">
+          <div className="homepage-product-media relative aspect-[4/4.2] overflow-hidden rounded-[22px] border border-[#f1ddaa] bg-white">
             {img.startsWith("/") ? (
               <Image
                 src={img}
                 alt={item.name}
                 fill
                 sizes="(min-width: 1024px) 180px, 50vw"
-                className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
+                className="object-contain object-center p-2 transition-transform duration-300 group-hover:scale-[1.03]"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={img}
                 alt={item.images?.[0]?.alt ?? item.name}
-                className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+                className="h-full w-full object-contain object-center p-2 transition-transform duration-300 group-hover:scale-[1.03]"
               />
             )}
           </div>
-          <h3 className="product-title mt-5 line-clamp-2 text-center text-[15px] font-semibold leading-[1.25] text-[#27324a]">{item.name}</h3>
-          <p className="product-price mt-5 text-center text-[18px] font-semibold tracking-tight text-[#87630f]">{formatPrice(item.price)}</p>
+          <h3 className="product-title mt-4 line-clamp-2 min-h-[2.8rem] text-center text-[15px] font-semibold leading-[1.35] text-[#27324a]">{item.name}</h3>
+          <p className="product-price mt-4 text-center text-[16px] font-semibold tracking-tight text-[#87630f]">{formatPrice(item.price)}</p>
         </Link>
         <Button
           asChild
           variant="outline"
-          className="homepage-product-cta mt-5 h-11 w-full rounded-full border-[#ead295] bg-white text-[15px] font-semibold text-[#8a6917] transition-all duration-300 hover:bg-[#fff8ea]"
+          className="homepage-product-cta mt-4 h-11 w-full rounded-full border-[#ead295] bg-white text-[15px] font-semibold text-[#8a6917] transition-all duration-300 hover:bg-[#fff8ea]"
         >
           <Link href={href}>Voir le produit</Link>
         </Button>
@@ -533,7 +533,7 @@ const displayedItems = useMemo(() => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="homepage-feature-track hidden md:flex"
+            className="homepage-feature-track hidden md:flex md:flex-nowrap"
           >
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
