@@ -1095,11 +1095,15 @@
 }
 
 .homepage-feature-track {
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 168px;
   align-items: stretch;
   gap: 14px;
   overflow-x: auto;
+  overflow-y: hidden;
+  justify-content: start;
+  width: 100%;
   padding: 0 2px;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1114,7 +1118,7 @@
 }
 
 .homepage-product-card {
-  flex: 0 0 168px;
+  width: 168px;
   min-width: 168px;
   max-width: 168px;
   position: relative;
@@ -1161,17 +1165,18 @@
     min-width: 0;
     max-width: none;
     width: 100%;
-    padding: 0.8rem;
-    border-radius: 24px;
+    padding: 0.72rem;
+    border-radius: 22px;
   }
 
   .homepage-products-mobile .homepage-product-media {
-    aspect-ratio: 4 / 4.6;
+    aspect-ratio: 1 / 1;
+    border-radius: 18px;
   }
 
   .homepage-products-mobile .homepage-product-badge {
-    top: 10px;
-    right: 10px;
+    top: 9px;
+    right: 9px;
     font-size: 0.72rem;
     padding: 0.32rem 0.62rem;
   }

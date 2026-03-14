@@ -20,7 +20,7 @@ const GOLD_GRADIENT = "linear-gradient(135deg, #f6e27a, #d4af37, #b8860b)";
 
 function formatPrice(v: unknown) {
   const n = Number(v ?? 0);
-  return `${n.toFixed(2)} €`;
+  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0)} F CFA`;
 }
 
 export default function PromotionsPage() {

@@ -38,6 +38,7 @@ export default function AdminProductsAddPage() {
   const [categorySlug, setCategorySlug] = useState("");
   const [brand, setBrand] = useState("");
   const [tags, setTags] = useState("");
+  const [deliveryEstimateNote, setDeliveryEstimateNote] = useState("Vous serez notifié par email et SMS à l'arrivée de votre commande.");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   const categoriesQuery = useQuery({
@@ -66,6 +67,7 @@ export default function AdminProductsAddPage() {
       const metadata: Record<string, unknown> = {};
       if (brand.trim()) metadata.brand = brand.trim();
       if (tags.trim()) metadata.tags = tags.split(",").map((t) => t.trim()).filter(Boolean);
+      if (deliveryEstimateNote.trim()) metadata.delivery_estimate_note = deliveryEstimateNote.trim();
       if (parsedAir !== null || parsedSea !== null) {
         metadata.transport_prices = {
           air: parsedAir,
@@ -255,6 +257,16 @@ export default function AdminProductsAddPage() {
             <div className="grid gap-2">
               <Label>Marque</Label>
               <Input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Entrez la marque" />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Note estimation livraison</Label>
+              <textarea
+                value={deliveryEstimateNote}
+                onChange={(e) => setDeliveryEstimateNote(e.target.value)}
+                placeholder="Texte affiché sous l'estimation de livraison"
+                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none"
+              />
             </div>
           </CardContent>
         </Card>

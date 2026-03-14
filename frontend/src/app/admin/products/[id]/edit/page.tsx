@@ -40,6 +40,7 @@ export default function AdminProductEditPage() {
   const [categorySlug, setCategorySlug] = useState("");
   const [brand, setBrand] = useState("");
   const [tags, setTags] = useState("");
+  const [deliveryEstimateNote, setDeliveryEstimateNote] = useState("Vous serez notifié par email et SMS à l'arrivée de votre commande.");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   const categoryNameBySlug = useMemo(() => {
@@ -75,6 +76,12 @@ export default function AdminProductEditPage() {
     } else {
       setTags("");
     }
+
+    setDeliveryEstimateNote(
+      typeof meta.delivery_estimate_note === "string" && meta.delivery_estimate_note.trim()
+        ? meta.delivery_estimate_note
+        : "Vous serez notifié par email et SMS à l'arrivée de votre commande.",
+    );
   }, [productQuery.data]);
 
   const updateProduct = useMutation({
@@ -87,6 +94,9 @@ export default function AdminProductEditPage() {
 
       if (tags.trim()) metadata.tags = tags.split(",").map((t) => t.trim()).filter(Boolean);
       else delete metadata.tags;
+
+      if (deliveryEstimateNote.trim()) metadata.delivery_estimate_note = deliveryEstimateNote.trim();
+      else delete metadata.delivery_estimate_note;
 
       const air = priceAir.trim() ? Number(priceAir) : null;
       const sea = priceSea.trim() ? Number(priceSea) : null;
@@ -266,6 +276,16 @@ export default function AdminProductEditPage() {
             <div className="grid gap-2">
               <Label>Marque</Label>
               <Input value={brand} onChange={(e) => setBrand(e.target.value)} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Note estimation livraison</Label>
+              <textarea
+                value={deliveryEstimateNote}
+                onChange={(e) => setDeliveryEstimateNote(e.target.value)}
+                placeholder="Texte affiché sous l'estimation de livraison"
+                className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none"
+              />
             </div>
           </CardContent>
         </Card>

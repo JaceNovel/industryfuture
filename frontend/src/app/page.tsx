@@ -228,7 +228,17 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
   });
   const featured = featuredQuery.data?.data ?? [];
   const fallbackProducts = productsQuery.data?.data ?? [];
-  const sourceProducts = featured.length ? featured : fallbackProducts;
+  const sourceProducts = useMemo(() => {
+    const raw = featured.length ? featured : fallbackProducts;
+    const seen = new Set<string>();
+
+    return raw.filter((product, index) => {
+      const key = productStableKey(product, index);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [fallbackProducts, featured]);
   const categories = useMemo(() => {
   const map = new Map<string, string>();
 
@@ -284,7 +294,16 @@ const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   scored.sort((a, b) => a.score - b.score);
 
-  return scored.slice(0, 12).map((x) => x.p);
+  const seen = new Set<string>();
+  return scored
+    .map((x, index) => ({ product: x.p, key: productStableKey(x.p, index) }))
+    .filter((entry) => {
+      if (seen.has(entry.key)) return false;
+      seen.add(entry.key);
+      return true;
+    })
+    .slice(0, 12)
+    .map((entry) => entry.product);
 }, [sourceProducts, popularRotationKey]);
 const displayedItems = useMemo(() => {
   if (activeCategory === null) {
@@ -533,7 +552,7 @@ const displayedItems = useMemo(() => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="homepage-feature-track hidden md:flex md:flex-nowrap"
+            className="homepage-feature-track hidden md:grid"
           >
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
