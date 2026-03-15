@@ -534,18 +534,9 @@ const displayedItems = useMemo(() => {
             <p className="text-sm text-slate-500">Aucun produit disponible.</p>
           ) : null}
 
-          {/* Mobile: grille 2 colonnes comme le catalogue */}
-<div
-  ref={popularSectionRef}
-  className="homepage-products-mobile grid grid-cols-2 gap-x-3 gap-y-5 px-1 block md:hidden"
->
- {displayedItems.map((item, idx) =>
-    renderPopularCard(item, idx, "mobile")
-  )}
-</div>
-
-          {/* Desktop track */}
+          {/* Horizontal track */}
           <motion.div
+            ref={popularSectionRef}
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
