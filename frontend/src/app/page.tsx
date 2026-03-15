@@ -537,8 +537,7 @@ const displayedItems = useMemo(() => {
           {/* Mobile: grille 2 colonnes comme le catalogue */}
 <div
   ref={popularSectionRef}
-  className="homepage-products-mobile grid grid-cols-6 gap-x-3 gap-y-5 px-1 md:hidden"
-
+  className="homepage-products-mobile grid grid-cols-2 gap-x-3 gap-y-5 px-1 block md:hidden"
 >
  {displayedItems.map((item, idx) =>
     renderPopularCard(item, idx, "mobile")
@@ -551,7 +550,7 @@ const displayedItems = useMemo(() => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="homepage-feature-track hidden md:flex"
+            className="homepage-feature-track hidden md:flex overflow-x-auto"
           >
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
