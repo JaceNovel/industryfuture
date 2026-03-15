@@ -1112,10 +1112,8 @@
 }
 
 .homepage-products-mobile {
-  display: grid;
   margin-bottom: 3rem;
 }
-
 .homepage-product-card {
   width: 168px;
   min-width: 168px;
