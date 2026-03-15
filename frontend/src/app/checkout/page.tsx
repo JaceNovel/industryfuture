@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/api";
-import type { Address, Order } from "@/lib/types";
+import type { Address, Cart, Order } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,8 +49,14 @@ function addressLabel(a: Address) {
   return parts.join(" — ") || `Adresse #${a.id}`;
 }
 
+function normalizeCountry(value: string | null | undefined) {
+  const cleaned = String(value ?? "").trim().toUpperCase().replace(/[^A-Z]/g, "");
+  return cleaned.length === 2 ? cleaned : "";
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const addressesQuery = useQuery({
     queryKey: ["addresses"],
@@ -86,6 +92,16 @@ export default function CheckoutPage() {
     return addresses.find((a) => a.id === id) ?? null;
   }, [addresses, selectedAddress]);
 
+  useEffect(() => {
+    if (!selectedAddressObj) return;
+    const nextPhone = (selectedAddressObj.phone ?? "").trim();
+    const nextCountry = normalizeCountry(selectedAddressObj.country);
+    setPhone(nextPhone);
+    if (nextCountry) {
+      setCountry(nextCountry);
+    }
+  }, [selectedAddressObj]);
+
   const usingSavedAddress = Boolean(selectedAddressObj);
   const usingNewAddress = !usingSavedAddress;
 
@@ -113,6 +129,15 @@ export default function CheckoutPage() {
       return apiPost<CheckoutResponse>("/api/checkout", payload);
     },
     onSuccess: (res) => {
+      queryClient.setQueryData<Cart | undefined>(["cart"], (current) =>
+        current
+          ? {
+              ...current,
+              items: [],
+            }
+          : current,
+      );
+
       const paymentUrl = (res.payment_url ?? "").trim();
       if (paymentUrl) {
         window.location.assign(paymentUrl);
@@ -122,8 +147,10 @@ export default function CheckoutPage() {
     },
   });
 
+  const hasValidCountry = normalizeCountry(country).length === 2;
+  const hasPhone = phone.trim().length >= 8;
   const canSubmitNew = fullName.trim() && line1.trim() && city.trim() && postalCode.trim();
-  const canSubmit = usingSavedAddress ? true : Boolean(canSubmitNew);
+  const canSubmit = Boolean((usingSavedAddress ? true : canSubmitNew) && hasValidCountry && hasPhone);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-10">
@@ -292,6 +319,13 @@ export default function CheckoutPage() {
               />
             </div>
           </div>
+
+          {!hasPhone ? (
+            <div className="text-sm text-destructive">Ajoutez un numéro de téléphone valide pour initialiser le paiement.</div>
+          ) : null}
+          {!hasValidCountry ? (
+            <div className="text-sm text-destructive">Le pays doit être un code sur 2 lettres, par exemple BJ.</div>
+          ) : null}
 
           {checkout.isError ? (
             <div className="text-sm text-destructive">{(checkout.error as Error).message}</div>

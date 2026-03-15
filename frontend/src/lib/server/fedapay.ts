@@ -1,4 +1,4 @@
-import { Customer, FedaPay, Transaction, Webhook } from "fedapay";
+import { Webhook } from "fedapay";
 
 export type PaymentProviderStatus = "completed" | "failed" | "pending";
 
@@ -36,7 +36,19 @@ type FedapayTransactionLike = {
   canceled_at?: string;
   declined_at?: string;
   updated_at?: string;
+  last_error_code?: string;
 };
+
+type FedaPayRequestMethod = "GET" | "POST";
+
+function normalizeEmail(value: string | null | undefined) {
+  const cleaned = String(value ?? "").trim().toLowerCase();
+  if (!cleaned || !cleaned.includes("@")) {
+    return null;
+  }
+
+  return cleaned;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -55,7 +67,7 @@ function splitCustomerName(fullName: string) {
 }
 
 function sanitizePhoneNumber(value: string | null | undefined) {
-  const cleaned = String(value ?? "").replace(/[^\d+]/g, "").trim();
+  const cleaned = String(value ?? "").replace(/\D/g, "").trim();
   return cleaned || null;
 }
 
@@ -64,23 +76,99 @@ function normalizeCountryCode(value: string | null | undefined) {
   return cleaned.length === 2 ? cleaned : "BJ";
 }
 
-function setupFedaPay() {
-  const apiKey = process.env.FEDAPAY_API_KEY?.trim() || process.env.FEDAPAY_SECRET_KEY?.trim();
-  if (!apiKey) return false;
+function getFedaPayApiKey() {
+  return process.env.FEDAPAY_API_KEY?.trim() || process.env.FEDAPAY_SECRET_KEY?.trim() || "";
+}
 
-  FedaPay.setApiKey(apiKey);
-  FedaPay.setEnvironment((process.env.FEDAPAY_ENV?.trim() || "sandbox") as "sandbox" | "live");
+function getFedaPayEnvironment() {
+  return (process.env.FEDAPAY_ENV?.trim().toLowerCase() || "sandbox") as "sandbox" | "live";
+}
+
+function getFedaPayBaseUrl() {
+  return getFedaPayEnvironment() === "live" ? "https://api.fedapay.com" : "https://sandbox-api.fedapay.com";
+}
+
+function getFedaPayHeaders() {
+  const apiKey = getFedaPayApiKey();
+  if (!apiKey) {
+    throw new Error("FedaPay is not configured.");
+  }
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    "X-Version": "1.1.1",
+    "X-Source": "FuturInd Server",
+  };
 
   const accountId = process.env.FEDAPAY_ACCOUNT_ID?.trim();
   if (accountId) {
-    FedaPay.setAccountId(accountId);
+    headers["FedaPay-Account"] = accountId;
   }
 
-  return true;
+  return headers;
+}
+
+async function fedapayRequest<T>(path: string, method: FedaPayRequestMethod, body?: Record<string, unknown>): Promise<T> {
+  const payload = method === "POST" ? JSON.stringify(body ?? {}) : undefined;
+  const response = await fetch(`${getFedaPayBaseUrl()}/v1${path}`, {
+    method,
+    headers: getFedaPayHeaders(),
+    body: payload,
+    cache: "no-store",
+  });
+
+  const text = await response.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
+
+  if (!response.ok) {
+    const record = isRecord(data) ? data : {};
+    const message = typeof record.message === "string" && record.message.trim()
+      ? record.message.trim()
+      : `FedaPay request failed with status ${response.status}.`;
+    const error = new Error(message) as Error & { response?: { status: number; data: unknown } };
+    error.response = { status: response.status, data };
+    throw error;
+  }
+
+  return data as T;
+}
+
+async function createFedapayCustomer(input: { firstname: string; lastname: string; email?: string | null }) {
+  const basePayload = {
+    firstname: input.firstname,
+    lastname: input.lastname,
+  };
+
+  try {
+    return await fedapayRequest<{ "v1/customer"?: FedapayTransactionLike & { email?: string; phone?: string } }>("/customers", "POST", {
+      ...basePayload,
+      ...(input.email ? { email: input.email } : {}),
+    });
+  } catch (error) {
+    if (!input.email) {
+      throw error;
+    }
+
+    const status = (error as { response?: { status?: number } } | null)?.response?.status;
+    if (status !== 400 && status !== 422) {
+      throw error;
+    }
+
+    return fedapayRequest<{ "v1/customer"?: FedapayTransactionLike & { email?: string; phone?: string } }>("/customers", "POST", basePayload);
+  }
 }
 
 export function isFedaPayConfigured() {
-  return Boolean(process.env.FEDAPAY_API_KEY?.trim() || process.env.FEDAPAY_SECRET_KEY?.trim());
+  return Boolean(getFedaPayApiKey());
 }
 
 export function isFedaPayWebhookConfigured() {
@@ -117,36 +205,47 @@ export function mapFedaPayStatus(status: string | null | undefined): PaymentProv
 }
 
 export async function createFedaPaySession(input: FedapayTransactionInput): Promise<FedapayCheckoutSession> {
-  if (!setupFedaPay()) {
+  if (!isFedaPayConfigured()) {
     throw new Error("FedaPay is not configured.");
   }
 
   const { firstname, lastname } = splitCustomerName(input.customer.name);
-  const customer = await Customer.create({
-    firstname,
-    lastname,
-    email: input.customer.email,
-    ...(sanitizePhoneNumber(input.customer.phone) ? { phone: sanitizePhoneNumber(input.customer.phone) } : {}),
-  });
+  const customerEmail = normalizeEmail(input.customer.email);
+  const customerResponse = await createFedapayCustomer({ firstname, lastname, email: customerEmail });
+  const customer = isRecord(customerResponse) && isRecord(customerResponse["v1/customer"])
+    ? (customerResponse["v1/customer"] as Record<string, unknown>)
+    : null;
+  const customerId = Number(customer?.id ?? 0);
+  if (!customerId) {
+    throw new Error("Unable to create FedaPay customer.");
+  }
 
-  const transaction = await Transaction.create({
+  const transactionResponse = await fedapayRequest<{ "v1/transaction"?: FedapayTransactionLike }>("/transactions", "POST", {
     description: input.description,
     amount: Math.round(Number(input.amount) || 0),
     currency: { iso: "XOF" },
     callback_url: input.callbackUrl,
-    customer: { id: (customer as unknown as { id?: number }).id },
+    customer: { id: customerId },
     ...(input.customMetadata ? { custom_metadata: input.customMetadata } : {}),
     ...(input.merchantReference ? { merchant_reference: input.merchantReference } : {}),
   });
+  const transaction = isRecord(transactionResponse) && isRecord(transactionResponse["v1/transaction"])
+    ? (transactionResponse["v1/transaction"] as Record<string, unknown>)
+    : null;
+  const transactionId = Number(transaction?.id ?? 0);
+  if (!transactionId) {
+    throw new Error("Unable to create FedaPay transaction.");
+  }
 
-  const tokenObject = (await transaction.generateToken()) as unknown as { token?: string; url?: string };
+  const tokenObject = await fedapayRequest<{ token?: string; url?: string }>(`/transactions/${transactionId}/token`, "POST");
 
   let sendNowResponse: Record<string, unknown> | null = null;
   const autoSendMode = process.env.FEDAPAY_AUTO_SEND_MODE?.trim();
   const phoneNumber = sanitizePhoneNumber(input.customer.phone);
   const country = normalizeCountryCode(input.customer.country);
   if (autoSendMode && tokenObject.token && phoneNumber) {
-    const response = await transaction.sendNowWithToken(autoSendMode, tokenObject.token, {
+    const response = await fedapayRequest<Record<string, unknown>>(`/${autoSendMode}`, "POST", {
+      token: tokenObject.token,
       phone_number: {
         number: phoneNumber,
         country,
@@ -155,7 +254,7 @@ export async function createFedaPaySession(input: FedapayTransactionInput): Prom
     sendNowResponse = isRecord(response) ? response : { value: response };
   }
 
-  const typedTransaction = transaction as unknown as FedapayTransactionLike;
+  const typedTransaction = transaction as FedapayTransactionLike;
   return {
     provider: "fedapay",
     paymentUrl: String(tokenObject.url ?? input.callbackUrl),
@@ -174,11 +273,16 @@ export async function createFedaPaySession(input: FedapayTransactionInput): Prom
 }
 
 export async function retrieveFedaPayTransaction(transactionId: number | string) {
-  if (!setupFedaPay()) {
+  if (!isFedaPayConfigured()) {
     throw new Error("FedaPay is not configured.");
   }
 
-  return Transaction.retrieve(transactionId);
+  const response = await fedapayRequest<{ "v1/transaction"?: Record<string, unknown> }>(`/transactions/${transactionId}`, "GET");
+  if (isRecord(response) && isRecord(response["v1/transaction"])) {
+    return response["v1/transaction"];
+  }
+
+  return response;
 }
 
 export function extractFedaPayMetadata(transaction: unknown) {
