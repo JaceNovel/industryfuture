@@ -1113,6 +1113,7 @@
 
 .homepage-products-mobile {
   display: grid;
+  margin-bottom: 3rem;
 }
 
 .homepage-product-card {
@@ -1165,6 +1166,12 @@
     width: 100%;
     padding: 0.72rem;
     border-radius: 22px;
+  }
+
+   /* --- AJOUTE ÇA POUR SUPPRIMER LA LIGNE GRISE --- */
+  .sticky-categories {
+    border-bottom: none !important;
+    box-shadow: none !important;
   }
 
   .homepage-products-mobile .homepage-product-media {

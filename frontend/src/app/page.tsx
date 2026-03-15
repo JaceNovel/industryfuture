@@ -110,6 +110,7 @@ export default function Home() {<header
   );
 const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+
   // Keep the selection stable for 5 days, then rotate automatically.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -489,10 +490,7 @@ const displayedItems = useMemo(() => {
 </div>
          
         
-      <section className="w-full px-4 pt-6 sm:px-8 md:px-12 md:pt-8">
-        <div className="section-divider section-divider-hero mx-auto h-px w-full max-w-6xl" style={{ backgroundImage: GOLD_GRADIENT }} />
-      </section>
-
+      
       <section className="popular-section w-full px-4 pt-10 sm:px-8 md:px-12 md:pt-16">
         <div className="homepage-feature-strip mx-auto max-w-[1420px]">
           <motion.div
@@ -539,11 +537,12 @@ const displayedItems = useMemo(() => {
           {/* Mobile: grille 2 colonnes comme le catalogue */}
 <div
   ref={popularSectionRef}
-  className="homepage-products-mobile grid grid-cols-2 gap-4 md:hidden"
+  className="homepage-products-mobile grid grid-cols-6 gap-x-3 gap-y-5 px-1 md:hidden"
+
 >
-    {displayedItems.map((item, idx) =>
-  renderPopularCard(item, idx, "mobile")
-)}
+ {displayedItems.map((item, idx) =>
+    renderPopularCard(item, idx, "mobile")
+  )}
 </div>
 
           {/* Desktop track */}
