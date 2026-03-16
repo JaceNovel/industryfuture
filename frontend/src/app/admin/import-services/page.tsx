@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { ImportRequest } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getToken } from "@/lib/auth";
 
 type ImportRequestsResponse = {
   data: ImportRequest[];
@@ -16,6 +17,8 @@ export default function AdminImportServicesPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [priceById, setPriceById] = useState<Record<number, string>>({});
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const requestsQuery = useQuery({
     queryKey: ["admin-import-requests"],
@@ -30,6 +33,17 @@ export default function AdminImportServicesPage() {
     },
   });
 
+  const notifyRequest = useMutation({
+    mutationFn: (id: number) => apiPost(`/api/admin/import-requests/${id}/notify`, {}),
+    onSuccess: async () => {
+      setActionMessage("Email envoyé.");
+      await qc.invalidateQueries({ queryKey: ["admin-import-requests"] });
+    },
+    onError: (error) => {
+      setActionMessage(error instanceof Error ? error.message : "Envoi impossible");
+    },
+  });
+
   const rows = useMemo(() => {
     const all = requestsQuery.data?.data ?? [];
     const q = search.trim().toLowerCase();
@@ -39,6 +53,33 @@ export default function AdminImportServicesPage() {
       return text.includes(q);
     });
   }, [requestsQuery.data, search]);
+
+  const downloadProof = async (id: number) => {
+    setActionMessage(null);
+    setDownloadError(null);
+    try {
+      const token = getToken();
+      const res = await fetch(`/api/admin/import-requests/${id}/proof-pdf`, {
+        headers: {
+          Accept: "application/pdf",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `service-premium-partenaire-${id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Téléchargement impossible";
+      setDownloadError(msg);
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
@@ -57,6 +98,8 @@ export default function AdminImportServicesPage() {
         <CardContent>
           {requestsQuery.isLoading ? <div className="text-sm text-muted-foreground">Chargement...</div> : null}
           {requestsQuery.isError ? <div className="text-sm text-destructive">{(requestsQuery.error as Error).message}</div> : null}
+          {downloadError ? <div className="mb-3 text-sm text-destructive">{downloadError}</div> : null}
+          {actionMessage ? <div className="mb-3 text-sm text-muted-foreground">{actionMessage}</div> : null}
 
           <div className="space-y-4">
             {rows.map((r) => (
@@ -113,6 +156,23 @@ export default function AdminImportServicesPage() {
                     disabled={updateRequest.isPending}
                   >
                     Enregistrer prix
+                  </Button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={() => downloadProof(r.id)}>
+                    Télécharger PDF
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setActionMessage(null);
+                      notifyRequest.mutate(r.id);
+                    }}
+                    disabled={notifyRequest.isPending}
+                  >
+                    Renvoyer mail
                   </Button>
                 </div>
               </div>
