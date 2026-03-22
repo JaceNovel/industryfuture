@@ -99,10 +99,8 @@ function ReadyToLevelUp({ className }: { className?: string }) {
   );
 }
 
-export default function Home() {<header
-  id="categories-bar"
-  className="site-header sticky top-0 z-20 border-b bg-background transition-transform duration-300"
-></header>
+export default function Home() {
+
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
   const popularSectionRef = useRef<HTMLDivElement | null>(null);
   const [popularRotationKey, setPopularRotationKey] = useState(() =>
@@ -408,8 +406,9 @@ const displayedItems = useMemo(() => {
   ];
 
 
-   return (
- <main className="home-main w-full bg-white pb-14 md:pb-20">
+ return (
+ 
+    <main className="home-main w-full bg-white pb-14 md:pb-20">
       <div className="banner-pc">
         <section className="w-full overflow-hidden">
           <motion.section
@@ -534,9 +533,9 @@ const displayedItems = useMemo(() => {
             <p className="text-sm text-slate-500">Aucun produit disponible.</p>
           ) : null}
 
-<<<<<<< HEAD
+
           {/* Horizontal track */}
-=======
+
           {/* Mobile: grille 2 colonnes comme le catalogue */}
 <div
   ref={popularSectionRef}
@@ -548,22 +547,17 @@ const displayedItems = useMemo(() => {
 </div>
 
           {/* Desktop track */}
->>>>>>> 24f391a (feat: preview images + bouton supprimer dans création produit)
+ 24f391a (feat: preview images + bouton supprimer dans création produit)
           <motion.div
             ref={popularSectionRef}
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
-<<<<<<< HEAD
+
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="homepage-feature-track flex"
           >
-=======
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}   
-  className="homepage-feature-track hidden md:flex lg:flex overflow-x-auto"
->
-          
->>>>>>> 24f391a (feat: preview images + bouton supprimer dans création produit)
+24f391a (feat: preview images + bouton supprimer dans création produit)
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
 )}
@@ -651,6 +645,6 @@ const displayedItems = useMemo(() => {
       {/* Desktop only: keep the “Ready” section in its original position */}
       {/* Bloc "Prêt à passer au niveau supérieur" déplacé tout en bas */}
       <ReadyToLevelUp className="w-full mb-20" />
-    </main>
-  );
+        </main>
+);
 }
