@@ -408,7 +408,7 @@ const displayedItems = useMemo(() => {
 
  return (
  
-    <main className="home-main w-full bg-white pb-14 md:pb-20">
+   <main className="home-main w-full bg-white pb-14 md:pb-20">
       <div className="banner-pc">
         <section className="w-full overflow-hidden">
           <motion.section
@@ -539,7 +539,7 @@ const displayedItems = useMemo(() => {
           {/* Mobile: grille 2 colonnes comme le catalogue */}
 <div
   ref={popularSectionRef}
-  className="homepage-products-mobile grid grid-cols-2 gap-x-3 gap-y-5 px-1 md:hidden lg:hidden"
+  className="homepage-products-mobile grid grid-cols-2 gap-x-3 gap-y-5 px-1 md:hidden lg:hidden h-[80vh] overflow-y-hidden"
 >
  {displayedItems.map((item, idx) =>
     renderPopularCard(item, idx, "mobile")

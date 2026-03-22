@@ -282,8 +282,8 @@ export default function ProductPage() {
     ? getQuantityPricing(product)
     : {
         local: { minQty: 1, baseMode: "lot" as BasePricingMode, shippingFee: 0 },
-        air: { minQty: 2, baseMode: "lot" as BasePricingMode, shippingFee: 0 },
-        sea: { minQty: 10, baseMode: "unit" as BasePricingMode, shippingFee: 0 },
+        air: { minQty: 1, baseMode: "lot" as BasePricingMode, shippingFee: 0 },
+        sea: { minQty: 1, baseMode: "unit" as BasePricingMode, shippingFee: 0 },
       };
   const categoryName = product?.categories?.[0]?.name ?? "SPORT ET LOISIR";
   const stockValue = typeof product?.stock === "number" ? product.stock : 0;

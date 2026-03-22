@@ -171,10 +171,16 @@ export default function AdminProductsAddPage() {
               accept="image/*"
               multiple
               onChange={(e) => {
-                const files = Array.from(e.target.files ?? []).slice(0, 4);
-                setImageFiles(files);
-              }}
-            />
+               const files = Array.from(e.target.files ?? []);
+                 setImageFiles((prev) => {
+
+                    const newFiles = [...prev, ...files];
+                     return newFiles.slice(0, 4); // limite à 4
+                     
+              });
+          }}
+          />
+          
             <p className="text-xs text-muted-foreground">Formats acceptés: JPG, JPEG, PNG, WEBP (max 4MB).</p>
             {imageFiles.length ? <p className="text-xs text-foreground/80">{imageFiles.length} fichier(s) sélectionné(s).</p> : null}
           
