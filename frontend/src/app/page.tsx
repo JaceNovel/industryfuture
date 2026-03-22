@@ -547,7 +547,7 @@ const displayedItems = useMemo(() => {
 </div>
 
           {/* Desktop track */}
- 24f391a (feat: preview images + bouton supprimer dans création produit)
+
           <motion.div
             ref={popularSectionRef}
             initial={{ opacity: 0, y: 22 }}
@@ -557,7 +557,7 @@ const displayedItems = useMemo(() => {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="homepage-feature-track flex"
           >
-24f391a (feat: preview images + bouton supprimer dans création produit)
+
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
 )}
