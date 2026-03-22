@@ -538,7 +538,7 @@ const displayedItems = useMemo(() => {
 
           {/* Mobile: grille 2 colonnes comme le catalogue */}
 <div
-  className="homepage-products-mobile grid grid-cols-2 gap-x-3 gap-y-5 px-1 md:hidden lg:hidden"
+
 >
  {displayedItems.map((item, idx) =>
     renderPopularCard(item, idx, "mobile")
