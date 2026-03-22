@@ -534,17 +534,6 @@ const displayedItems = useMemo(() => {
           ) : null}
 
 
-          {/* Horizontal track */}
-
-          {/* Mobile: grille 2 colonnes comme le catalogue */}
-<div
-
->
- {displayedItems.map((item, idx) =>
-    renderPopularCard(item, idx, "mobile")
-  )}
-</div>
-
           {/* Desktop track */}
 
           <motion.div
