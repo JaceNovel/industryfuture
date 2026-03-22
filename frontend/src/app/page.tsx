@@ -534,15 +534,36 @@ const displayedItems = useMemo(() => {
             <p className="text-sm text-slate-500">Aucun produit disponible.</p>
           ) : null}
 
+<<<<<<< HEAD
           {/* Horizontal track */}
+=======
+          {/* Mobile: grille 2 colonnes comme le catalogue */}
+<div
+  ref={popularSectionRef}
+  className="homepage-products-mobile grid grid-cols-2 gap-x-3 gap-y-5 px-1 md:hidden lg:hidden"
+>
+ {displayedItems.map((item, idx) =>
+    renderPopularCard(item, idx, "mobile")
+  )}
+</div>
+
+          {/* Desktop track */}
+>>>>>>> 24f391a (feat: preview images + bouton supprimer dans création produit)
           <motion.div
             ref={popularSectionRef}
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.18 }}
+<<<<<<< HEAD
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="homepage-feature-track flex"
           >
+=======
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}   
+  className="homepage-feature-track hidden md:flex lg:flex overflow-x-auto"
+>
+          
+>>>>>>> 24f391a (feat: preview images + bouton supprimer dans création produit)
             {displayedItems.map((item, idx) =>
   renderPopularCard(item, idx, "popular")
 )}

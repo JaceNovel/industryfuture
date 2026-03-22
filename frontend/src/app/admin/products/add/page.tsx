@@ -177,6 +177,34 @@ export default function AdminProductsAddPage() {
             />
             <p className="text-xs text-muted-foreground">Formats acceptés: JPG, JPEG, PNG, WEBP (max 4MB).</p>
             {imageFiles.length ? <p className="text-xs text-foreground/80">{imageFiles.length} fichier(s) sélectionné(s).</p> : null}
+          
+            {imageFiles.length > 0 && (
+  <div className="grid grid-cols-2 gap-3 mt-3">
+    {imageFiles.map((file, index) => {
+      const previewUrl = URL.createObjectURL(file);
+
+      return (
+        <div key={index} className="space-y-2">
+          <img
+            src={previewUrl}
+            alt={`preview-${index}`}
+            className="w-full h-32 object-cover rounded-md border"
+          />
+
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={() => {
+              setImageFiles((prev) => prev.filter((_, i) => i !== index));
+            }}
+          >
+            Supprimer
+          </Button>
+        </div>
+      );
+    })}
+  </div>
+)}
           </CardContent>
         </Card>
       </div>
