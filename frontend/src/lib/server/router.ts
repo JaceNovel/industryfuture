@@ -1333,7 +1333,14 @@ async function resolveCategoryIds(values: string[] | undefined) {
 async function handleAuthRoutes(request: NextRequest, segments: string[]) {
   if (request.method === "POST" && segments[1] === "register") {
     const payload = await parseJson(request, registerSchema);
-    const existing = await prisma.user.findUnique({ where: { email: payload.email } });
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: payload.email,
+          mode: "insensitive",
+        },
+      },
+    });
     if (existing) return fail("Email already exists", 422);
 
     const user = await prisma.user.create({
@@ -1354,7 +1361,14 @@ async function handleAuthRoutes(request: NextRequest, segments: string[]) {
 
   if (request.method === "POST" && segments[1] === "login") {
     const payload = await parseJson(request, loginSchema);
-    const user = await prisma.user.findUnique({ where: { email: payload.email } });
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: payload.email,
+          mode: "insensitive",
+        },
+      },
+    });
     if (!user || !(await compare(payload.password, user.password))) {
       return fail("Invalid credentials", 422);
     }

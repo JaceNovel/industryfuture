@@ -31,6 +31,16 @@ Notes :
  - `FEDAPAY_WEBHOOK_SECRET` et `FEDAPAY_WEBHOOK_TOLERANCE` sont utilisés par le webhook serveur pour valider la signature FedaPay et resynchroniser le statut réel du paiement.
  - sans configuration FedaPay, l'application retombe sur le flux mock interne pour garder un tunnel de paiement testable.
 
+## Bootstrap admin (prod)
+
+Sur une base vide (nouveau `DATABASE_URL`), aucun admin n'existe par défaut. Pour éviter d'être bloqué (login en 422 + routes admin en 401), vous pouvez définir sur Vercel :
+
+- `BOOTSTRAP_ADMIN_EMAIL`
+- `BOOTSTRAP_ADMIN_PASSWORD` (min 8 caractères)
+- `BOOTSTRAP_ADMIN_NAME` (optionnel)
+
+Au moment du build Vercel, un compte admin sera créé automatiquement si l'email n'existe pas encore.
+
 ## Persistance des images
 
 Les uploads faits depuis l'admin passent par Vercel Blob et restent persistants après redéploiement.
