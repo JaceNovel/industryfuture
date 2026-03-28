@@ -9,6 +9,7 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
+    "prisma:deploy": "node scripts/prisma-deploy.mjs",
     "prisma:push": "prisma db push",
     "import:products": "node scripts/import-products.mjs",
     "import:legacy-db": "node scripts/import-legacy-db.mjs",

@@ -763,148 +763,6 @@ async function createPdf(title: string, lines: string[]) {
       y,
       size: 11,
       font,
-
-      function isEmailDeliveryConfigured() {
-        return Boolean(process.env.RESEND_API_KEY?.trim());
-      }
-
-      function getEmailFromAddress() {
-        return process.env.MAIL_FROM_ADDRESS?.trim() || process.env.EMAIL_FROM?.trim() || "no-reply@industryfuture.local";
-      }
-
-      function getEmailFromName() {
-        return process.env.MAIL_FROM_NAME?.trim() || process.env.EMAIL_FROM_NAME?.trim() || "IndustryFuture";
-      }
-
-      function getAppBaseUrl() {
-        return process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.APP_URL?.trim() || "http://localhost:3000";
-      }
-
-      async function sendResendEmail(params: {
-        to: string;
-        subject: string;
-        html: string;
-        text: string;
-        attachments?: Array<{ filename: string; content: string; type: string }>;
-      }) {
-        const apiKey = process.env.RESEND_API_KEY?.trim();
-        if (!apiKey) return false;
-
-        const response = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: `${getEmailFromName()} <${getEmailFromAddress()}>`,
-            to: [params.to],
-            subject: params.subject,
-            html: params.html,
-            text: params.text,
-            ...(params.attachments?.length ? { attachments: params.attachments } : {}),
-          }),
-        });
-
-        if (!response.ok) {
-          const body = await response.text();
-          throw new Error(`Email delivery failed (HTTP ${response.status}): ${body}`);
-        }
-
-        return true;
-      }
-
-      async function createImportRequestApprovalPdf(importRequest: {
-        id: number;
-        name: string;
-        description?: string | null;
-        shipping_mode: string;
-        desired_delay_days?: number | null;
-        admin_price?: number | string | null;
-        tracking_number?: string | null;
-        status: string;
-        created_at?: Date | string;
-        updated_at?: Date | string;
-        user?: { name?: string | null; email?: string | null } | null;
-      }) {
-        return createPdf(`Fiche service premium partenaire #${importRequest.id}`, [
-          `Demande: #${importRequest.id}`,
-          `Client: ${importRequest.user?.name ?? "-"}`,
-          `Email: ${importRequest.user?.email ?? "-"}`,
-          `Produit / besoin: ${importRequest.name}`,
-          `Description: ${importRequest.description ?? "-"}`,
-          `Mode d'expedition: ${importRequest.shipping_mode}`,
-          `Delai souhaite: ${importRequest.desired_delay_days ? `${importRequest.desired_delay_days} jours` : "-"}`,
-          `Numero de suivi: ${importRequest.tracking_number ?? "-"}`,
-          `Statut: ${importRequest.status}`,
-          `Tarif: ${formatPdfMoney(importRequest.admin_price ?? 0)}`,
-          `Cree le: ${formatPdfDate(importRequest.created_at)}`,
-          `Mis a jour le: ${formatPdfDate(importRequest.updated_at)}`,
-        ]);
-      }
-
-      async function notifyImportRequestUpdate(importRequest: {
-        id: number;
-        name: string;
-        admin_price?: number | string | null;
-        tracking_number?: string | null;
-        status: string;
-        user?: { name?: string | null; email?: string | null } | null;
-        description?: string | null;
-        shipping_mode: string;
-        desired_delay_days?: number | null;
-        created_at?: Date | string;
-        updated_at?: Date | string;
-      }) {
-        const recipient = String(importRequest.user?.email ?? "").trim();
-        if (!recipient || !isEmailDeliveryConfigured()) return;
-
-        const pdf = await createImportRequestApprovalPdf(importRequest);
-        const paymentUrl = `${getAppBaseUrl().replace(/\/$/, "")}/account/import-services`;
-        const formattedPrice = formatPdfMoney(importRequest.admin_price ?? 0);
-        const subject = `Mise a jour de votre service premium partenaire #${importRequest.id}`;
-        const customerName = importRequest.user?.name?.trim() || "Client";
-        const html = `
-          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-            <h2 style="margin-bottom: 12px;">Service premium partenaire</h2>
-            <p>Bonjour ${customerName},</p>
-            <p>Votre demande <strong>#${importRequest.id}</strong> a ete mise a jour.</p>
-            <ul>
-              <li>Statut: <strong>${importRequest.status}</strong></li>
-              <li>Produit / besoin: <strong>${importRequest.name}</strong></li>
-              <li>Tarif: <strong>${formattedPrice}</strong></li>
-              <li>Suivi: <strong>${importRequest.tracking_number ?? "-"}</strong></li>
-            </ul>
-            <p>Vous trouverez la fiche PDF en piece jointe.</p>
-            <p>Consulter votre espace: <a href="${paymentUrl}">${paymentUrl}</a></p>
-          </div>
-        `;
-        const text = [
-          `Bonjour ${customerName},`,
-          "",
-          `Votre demande #${importRequest.id} a ete mise a jour.`,
-          `Statut: ${importRequest.status}`,
-          `Produit / besoin: ${importRequest.name}`,
-          `Tarif: ${formattedPrice}`,
-          `Suivi: ${importRequest.tracking_number ?? "-"}`,
-          "",
-          `Consulter votre espace: ${paymentUrl}`,
-        ].join("\n");
-
-        await sendResendEmail({
-          to: recipient,
-          subject,
-          html,
-          text,
-          attachments: [
-            {
-              filename: `service-premium-partenaire-${importRequest.id}.pdf`,
-              content: pdf.toString("base64"),
-              type: "application/pdf",
-            },
-          ],
-        });
-      }
       color: rgb(0.22, 0.25, 0.29),
       maxWidth: 500,
     });
@@ -913,6 +771,148 @@ async function createPdf(title: string, lines: string[]) {
   }
 
   return Buffer.from(await pdf.save());
+}
+
+function isEmailDeliveryConfigured() {
+  return Boolean(process.env.RESEND_API_KEY?.trim());
+}
+
+function getEmailFromAddress() {
+  return process.env.MAIL_FROM_ADDRESS?.trim() || process.env.EMAIL_FROM?.trim() || "no-reply@industryfuture.local";
+}
+
+function getEmailFromName() {
+  return process.env.MAIL_FROM_NAME?.trim() || process.env.EMAIL_FROM_NAME?.trim() || "IndustryFuture";
+}
+
+function getAppBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.APP_URL?.trim() || "http://localhost:3000";
+}
+
+async function sendResendEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  attachments?: Array<{ filename: string; content: string; type: string }>;
+}) {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return false;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `${getEmailFromName()} <${getEmailFromAddress()}>`,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+      ...(params.attachments?.length ? { attachments: params.attachments } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Email delivery failed (HTTP ${response.status}): ${body}`);
+  }
+
+  return true;
+}
+
+async function createImportRequestApprovalPdf(importRequest: {
+  id: number;
+  name: string;
+  description?: string | null;
+  shipping_mode: string;
+  desired_delay_days?: number | null;
+  admin_price?: unknown;
+  tracking_number?: string | null;
+  status: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  user?: { name?: string | null; email?: string | null } | null;
+}) {
+  return createPdf(`Fiche service premium partenaire #${importRequest.id}`, [
+    `Demande: #${importRequest.id}`,
+    `Client: ${importRequest.user?.name ?? "-"}`,
+    `Email: ${importRequest.user?.email ?? "-"}`,
+    `Produit / besoin: ${importRequest.name}`,
+    `Description: ${importRequest.description ?? "-"}`,
+    `Mode d'expedition: ${importRequest.shipping_mode}`,
+    `Delai souhaite: ${importRequest.desired_delay_days ? `${importRequest.desired_delay_days} jours` : "-"}`,
+    `Numero de suivi: ${importRequest.tracking_number ?? "-"}`,
+    `Statut: ${importRequest.status}`,
+    `Tarif: ${formatPdfMoney(importRequest.admin_price ?? 0)}`,
+    `Cree le: ${formatPdfDate(importRequest.created_at)}`,
+    `Mis a jour le: ${formatPdfDate(importRequest.updated_at)}`,
+  ]);
+}
+
+async function notifyImportRequestUpdate(importRequest: {
+  id: number;
+  name: string;
+  admin_price?: unknown;
+  tracking_number?: string | null;
+  status: string;
+  user?: { name?: string | null; email?: string | null } | null;
+  description?: string | null;
+  shipping_mode: string;
+  desired_delay_days?: number | null;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}) {
+  const recipient = String(importRequest.user?.email ?? "").trim();
+  if (!recipient || !isEmailDeliveryConfigured()) return;
+
+  const pdf = await createImportRequestApprovalPdf(importRequest);
+  const paymentUrl = `${getAppBaseUrl().replace(/\/$/, "")}/account/import-services`;
+  const formattedPrice = formatPdfMoney(importRequest.admin_price ?? 0);
+  const subject = `Mise a jour de votre service premium partenaire #${importRequest.id}`;
+  const customerName = importRequest.user?.name?.trim() || "Client";
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
+      <h2 style="margin-bottom: 12px;">Service premium partenaire</h2>
+      <p>Bonjour ${customerName},</p>
+      <p>Votre demande <strong>#${importRequest.id}</strong> a ete mise a jour.</p>
+      <ul>
+        <li>Statut: <strong>${importRequest.status}</strong></li>
+        <li>Produit / besoin: <strong>${importRequest.name}</strong></li>
+        <li>Tarif: <strong>${formattedPrice}</strong></li>
+        <li>Suivi: <strong>${importRequest.tracking_number ?? "-"}</strong></li>
+      </ul>
+      <p>Vous trouverez la fiche PDF en piece jointe.</p>
+      <p>Consulter votre espace: <a href="${paymentUrl}">${paymentUrl}</a></p>
+    </div>
+  `;
+  const text = [
+    `Bonjour ${customerName},`,
+    "",
+    `Votre demande #${importRequest.id} a ete mise a jour.`,
+    `Statut: ${importRequest.status}`,
+    `Produit / besoin: ${importRequest.name}`,
+    `Tarif: ${formattedPrice}`,
+    `Suivi: ${importRequest.tracking_number ?? "-"}`,
+    "",
+    `Consulter votre espace: ${paymentUrl}`,
+  ].join("\n");
+
+  await sendResendEmail({
+    to: recipient,
+    subject,
+    html,
+    text,
+    attachments: [
+      {
+        filename: `service-premium-partenaire-${importRequest.id}.pdf`,
+        content: pdf.toString("base64"),
+        type: "application/pdf",
+      },
+    ],
+  });
 }
 
 function formatPdfMoney(value: unknown) {

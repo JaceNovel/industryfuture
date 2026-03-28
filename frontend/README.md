@@ -60,6 +60,8 @@ npm run dev
 npm run build
 ```
 
+Sur Vercel, le build exécute aussi une étape Prisma de déploiement de schéma (création des tables si la base est vide) avant `next build`. Assurez-vous que `DATABASE_URL` pointe vers une base PostgreSQL accessible depuis Vercel.
+
 Le build a été validé avec succès après la migration backend.
 
 ## Import catalogue
