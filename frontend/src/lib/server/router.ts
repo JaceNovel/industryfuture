@@ -2180,21 +2180,47 @@ async function handleAdmin(request: NextRequest, user: SessionUser, segments: st
     }
 
     if (request.method === "POST" && segments[3] === "images") {
-      if (!isFormDataRequest(request)) return fail("Expected multipart form-data", 415);
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { id: true, name: true } });
       if (!product) return fail("Not found", 404);
-      const formData = await request.formData();
-      const image = formData.get("image");
-      if (!(image instanceof File) || image.size === 0) return fail("Image is required", 422);
-      const url = await uploadFile(image, "products");
+
+      if (isFormDataRequest(request)) {
+        const formData = await request.formData();
+        const image = formData.get("image");
+        if (!(image instanceof File) || image.size === 0) return fail("Image is required", 422);
+        const url = await uploadFile(image, "products");
+        const record = await prisma.productImage.create({
+          data: {
+            product_id: product.id,
+            url,
+            alt: String(formData.get("alt") ?? `${product.name} image`).trim() || `${product.name} image`,
+            sort_order: Number(formData.get("sort_order") ?? 0) || 0,
+          },
+        });
+        return ok(record, 201);
+      }
+
+      const payload = await parseJson(
+        request,
+        z.object({
+          url: z
+            .string()
+            .trim()
+            .url()
+            .refine((value) => value.startsWith("http://") || value.startsWith("https://"), "Only http(s) URLs are supported"),
+          alt: z.string().trim().max(255).optional().nullable(),
+          sort_order: z.coerce.number().int().min(0).optional(),
+        })
+      );
+
       const record = await prisma.productImage.create({
         data: {
           product_id: product.id,
-          url,
-          alt: String(formData.get("alt") ?? `${product.name} image`).trim() || `${product.name} image`,
-          sort_order: Number(formData.get("sort_order") ?? 0) || 0,
+          url: payload.url,
+          alt: payload.alt ?? `${product.name} image`,
+          sort_order: payload.sort_order ?? 0,
         },
       });
+
       return ok(record, 201);
     }
   }

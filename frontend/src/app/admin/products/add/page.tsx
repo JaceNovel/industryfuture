@@ -46,6 +46,23 @@ export default function AdminProductsAddPage() {
   const [tags, setTags] = useState("");
   const [deliveryEstimateNote, setDeliveryEstimateNote] = useState("Vous serez notifié par email et SMS à l'arrivée de votre commande.");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageUrlDraft, setImageUrlDraft] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrlPreviewFailed, setImageUrlPreviewFailed] = useState(false);
+
+  const totalSelectedImages = imageFiles.length + imageUrls.length;
+  const canAddMoreImages = totalSelectedImages < 4;
+
+  const normalizedImageUrlDraft = imageUrlDraft.trim();
+  const isValidImageUrlDraft = useMemo(() => {
+    if (!normalizedImageUrlDraft) return false;
+    try {
+      const url = new URL(normalizedImageUrlDraft);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, [normalizedImageUrlDraft]);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -124,6 +141,17 @@ export default function AdminProductsAddPage() {
         }
       }
 
+      if (imageUrls.length && typeof created.id === "number") {
+        const offset = imageFiles.length;
+        for (let i = 0; i < imageUrls.length; i++) {
+          await apiPost(`/api/admin/products/${created.id}/images`, {
+            url: imageUrls[i],
+            alt: `${name.trim()} ${offset + i + 1}`.trim() || undefined,
+            sort_order: offset + i,
+          });
+        }
+      }
+
       return created;
     },
     onSuccess: () => {
@@ -174,15 +202,69 @@ export default function AdminProductsAddPage() {
                const files = Array.from(e.target.files ?? []);
                  setImageFiles((prev) => {
 
+                    const remainingSlots = Math.max(0, 4 - imageUrls.length);
                     const newFiles = [...prev, ...files];
-                     return newFiles.slice(0, 4); // limite à 4
+                    return newFiles.slice(0, remainingSlots);
                      
               });
           }}
           />
+
+            <div className="space-y-2">
+              <Label>Ou coller une URL d'image</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="url"
+                  value={imageUrlDraft}
+                  onChange={(e) => {
+                    setImageUrlDraft(e.target.value);
+                    setImageUrlPreviewFailed(false);
+                  }}
+                  placeholder="https://..."
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!canAddMoreImages || !isValidImageUrlDraft}
+                  onClick={() => {
+                    const url = normalizedImageUrlDraft;
+                    if (!url) return;
+                    if (!isValidImageUrlDraft) return;
+                    if (!canAddMoreImages) return;
+                    setImageUrls((prev) => {
+                      const next = [...prev, url];
+                      return next.slice(0, 4 - imageFiles.length);
+                    });
+                    setImageUrlDraft("");
+                    setImageUrlPreviewFailed(false);
+                  }}
+                >
+                  Ajouter
+                </Button>
+              </div>
+
+              {normalizedImageUrlDraft ? (
+                isValidImageUrlDraft ? (
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">Aperçu</div>
+                    {imageUrlPreviewFailed ? (
+                      <div className="text-xs text-destructive">Impossible d'afficher l'image (URL invalide ou bloquée).</div>
+                    ) : null}
+                    <img
+                      src={normalizedImageUrlDraft}
+                      alt="Aperçu URL"
+                      className="h-32 w-full rounded-md border object-cover"
+                      onError={() => setImageUrlPreviewFailed(true)}
+                    />
+                  </div>
+                ) : (
+                  <div className="text-xs text-destructive">URL invalide. Utilisez une URL http(s).</div>
+                )
+              ) : null}
+            </div>
           
             <p className="text-xs text-muted-foreground">Formats acceptés: JPG, JPEG, PNG, WEBP (max 4MB).</p>
-            {imageFiles.length ? <p className="text-xs text-foreground/80">{imageFiles.length} fichier(s) sélectionné(s).</p> : null}
+            {totalSelectedImages ? <p className="text-xs text-foreground/80">{totalSelectedImages} image(s) sélectionnée(s).</p> : null}
           
             {imageFiles.length > 0 && (
   <div className="grid grid-cols-2 gap-3 mt-3">
@@ -211,6 +293,26 @@ export default function AdminProductsAddPage() {
     })}
   </div>
 )}
+
+            {imageUrls.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                {imageUrls.map((url, index) => (
+                  <div key={`${url}-${index}`} className="space-y-2">
+                    <img src={url} alt={`url-preview-${index}`} className="h-32 w-full rounded-md border object-cover" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => {
+                        setImageUrls((prev) => prev.filter((_, i) => i !== index));
+                      }}
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
